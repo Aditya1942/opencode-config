@@ -23,7 +23,6 @@ The agent will fetch the installation document and execute every step to set up 
 | File | Purpose |
 |------|---------|
 | `opencode.json` | Models, agents, commands, custom providers |
-| `oh-my-opencode.json` | Oh-My-OpenCode settings (browser, git, background tasks) |
 | `AGENTS.md` | Agent instructions, coding standards, skill system docs |
 | `package.json` | Dependencies (`@opencode-ai/plugin`) |
 

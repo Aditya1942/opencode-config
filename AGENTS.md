@@ -9,7 +9,6 @@ orchestration config. Runtime: Bun/Node.js. Single dependency: `@opencode-ai/plu
 
 ```
 opencode.json          # Primary agent/model/command configuration
-oh-my-opencode.json    # Extended platform config (browser, tmux, experimental)
 package.json           # Dependencies (minimal — only @opencode-ai/plugin)
 plugins/
   superpowers.js       # Bootstrap plugin — injects skill framework into system prompt

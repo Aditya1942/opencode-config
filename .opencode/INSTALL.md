@@ -8,7 +8,6 @@ This document is designed for an AI agent to follow step-by-step to install this
 - **Superpowers skill framework** — 15 core workflow skills (TDD, debugging, planning, etc.)
 - **Custom skills** — 8 domain-specific skills (code review, frontend design, security, etc.)
 - **Team-agents orchestration** — cost-optimized subagent delegation with free-model fallbacks
-- **Oh-My-OpenCode** plugin configuration (browser automation, git, background tasks)
 - **Custom slash commands** (`/brainstorm`, `/write-plan`, `/execute-plan`)
 
 ---
@@ -114,7 +113,6 @@ After installation, the directory should look like this. Verify key files exist:
 ```bash
 # Verify core config files
 ls ~/.config/opencode/opencode.json
-ls ~/.config/opencode/oh-my-opencode.json
 ls ~/.config/opencode/package.json
 ls ~/.config/opencode/AGENTS.md
 
@@ -243,7 +241,6 @@ When skills reference Claude Code tools, OpenCode uses these equivalents:
 ├── .opencode/
 │   └── INSTALL.md              # This file
 ├── opencode.json               # Main config (models, agents, commands, providers)
-├── oh-my-opencode.json         # Oh-My-OpenCode plugin config
 ├── AGENTS.md                   # Agent instructions and coding standards
 ├── README.md                   # Repository overview
 ├── package.json                # Dependencies (@opencode-ai/plugin)
