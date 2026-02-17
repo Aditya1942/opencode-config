@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+bun.lock
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Sensitive / account data
+antigravity-accounts.json
+antigravity-accounts.json.*.tmp
+antigravity-signature-cache.json
+
+# Antigravity logs
+antigravity-logs/
+
+# Superpowers (separate git repo, managed independently)
+superpowers/
