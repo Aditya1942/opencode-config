@@ -16,3 +16,4 @@ antigravity-logs/
 
 # Superpowers (separate git repo, managed independently)
 superpowers/
+.gitignore
