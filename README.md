@@ -33,12 +33,12 @@ A 7-agent hierarchy optimized for cost and quality:
 | Agent | Model | Role |
 |-------|-------|------|
 | `build` (primary) | User-selected | Orchestration, complex reasoning |
-| `explore` | Claude Sonnet 4.5 Thinking | Codebase exploration, search |
-| `general` | Claude Opus 4.6 Thinking | Comprehension, code generation |
-| `explore-fallback` | MiniMax M2.5 (free) | Fallback exploration |
-| `general-fallback` | Kimi K2.5 (free) | Fallback general tasks |
-| `powerful-fallback` | Claude Opus 4.6 Thinking | Last-resort escalation |
-| `code-reviewer` | Default | Post-implementation review |
+| `explore` | Claude Sonnet 4.6 (Anthropic) | Codebase exploration, search |
+| `general` | Gemini 3 Pro (Antigravity) | Comprehension, code generation |
+| `explore-fallback` | MiniMax M2.5 (free) | Simple exploration (file reads, grep) |
+| `general-fallback` | Kimi K2.5 (free) | Simple general tasks |
+| `powerful-fallback` | Claude Opus 4.6 (Anthropic) | Complex & lengthy tasks |
+| `code-reviewer` | Gemini 3 Pro (Antigravity) | Post-implementation review |
 
 ### 24 Skills
 
@@ -49,7 +49,7 @@ brainstorming, writing-plans, executing-plans, test-driven-development, systemat
 code-review, explanatory-output, feature-dev, frontend-design, hookify, plugin-dev, pr-review-toolkit, security-guidance
 
 **Orchestration**:
-team-agents (cost-optimized subagent delegation with escalation ladder)
+team-agents (cost-optimized subagent delegation with complexity-based dispatch)
 
 ### Custom Commands
 
@@ -59,6 +59,7 @@ team-agents (cost-optimized subagent delegation with escalation ladder)
 | `/write-plan` | Create detailed implementation plan |
 | `/execute-plan` | Execute plan in batches with review checkpoints |
 | `/update-superpowers` | Pull latest superpowers from git |
+| `/antigravity-quota` | Check Antigravity API quota for all accounts |
 
 ---
 

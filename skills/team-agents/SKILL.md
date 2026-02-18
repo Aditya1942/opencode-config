@@ -9,7 +9,7 @@ description: Use when receiving any task that involves sub-tasks like file readi
 
 You are an **orchestrator**. Your job is to decompose, delegate, and synthesize — never to do leaf work yourself. Subagents execute; you decide.
 
-**Core principle:** Orchestrate, don't implement. Parallelize aggressively. Escalate only on failure.
+**Core principle:** Orchestrate, don't implement. Assess complexity, route to the right tier. Parallelize aggressively.
 
 ## When to Use
 
@@ -69,18 +69,68 @@ You are the **team lead in delegate mode**. This means:
 
 ## Delegation Rules
 
-### Agent Types
+### Complexity-Based Dispatch
 
-| Task Type | Subagent | Model |
-|-----------|----------|-------|
-| File search, codebase exploration | `explore` | antigravity-claude-sonnet-4-5-thinking |
-| Code comprehension, multi-step work | `general` | antigravity-claude-opus-4-6-thinking |
+**Route tasks by complexity upfront — don't start cheap and escalate on failure.**
+
+Assess each subtask's complexity BEFORE dispatching. Use this decision tree:
+
+```dot
+digraph dispatch {
+    rankdir=TB;
+    "Subtask identified" [shape=doublecircle];
+    "Assess complexity" [shape=diamond];
+    "Simple?" [shape=diamond, label="Simple?\nFile read, grep,\nquick lookup"];
+    "Medium?" [shape=diamond, label="Medium?\nCode comprehension,\nmulti-step, code gen"];
+    "Complex" [shape=box, label="Complex & lengthy\nDeep analysis,\nmulti-file reasoning"];
+    "Tier 2 (Free)" [shape=box, label="Tier 2: Free models\nexplore-fallback / general-fallback"];
+    "Tier 1 (Paid)" [shape=box, label="Tier 1: Paid models\nexplore / general"];
+    "Powerful" [shape=box, label="powerful-fallback\nClaude Opus 4.6"];
+
+    "Subtask identified" -> "Simple?";
+    "Simple?" -> "Tier 2 (Free)" [label="yes"];
+    "Simple?" -> "Medium?" [label="no"];
+    "Medium?" -> "Tier 1 (Paid)" [label="yes"];
+    "Medium?" -> "Powerful" [label="no (complex)"];
+}
+```
+
+### Tier Assignments
+
+| Complexity | When to Use | Explore Agent | General Agent |
+|------------|-------------|---------------|---------------|
+| **Simple** | File reads, grep, quick lookups, listing directories, simple searches | `explore-fallback` (MiniMax M2.5) | `general-fallback` (Kimi K2.5) |
+| **Medium** | Code comprehension, multi-step exploration, code generation, summarization | `explore` (Claude Sonnet 4.6) | `general` (Gemini 3 Pro) |
+| **Complex & lengthy** | Deep analysis, large refactors, multi-file reasoning, architectural review | `powerful-fallback` (Claude Opus 4.6) | `powerful-fallback` (Claude Opus 4.6) |
+
+### Complexity Assessment Guide
+
+**Simple tasks** (use free models):
+- Read a file and return its contents
+- Grep for a pattern across the codebase
+- List files in a directory
+- Check if a file/function exists
+- Simple text extraction or lookup
+
+**Medium tasks** (use paid models):
+- Understand how a module works and summarize it
+- Generate boilerplate code or stubs
+- Analyze a function's logic and explain it
+- Search + comprehend results across multiple files
+- Write tests for existing code
+
+**Complex & lengthy tasks** (use powerful-fallback):
+- Deep architectural analysis across many files
+- Debug a multi-step issue requiring reasoning chains
+- Review security implications across a system
+- Refactoring analysis with dependency tracing
+- Tasks requiring 10+ tool calls or extended reasoning
 
 ### What to NEVER delegate
 
 - Final architectural decisions
-- Security reviews
-- Complex multi-file refactoring logic
+- Security reviews (final judgment — exploration can be delegated)
+- Complex multi-file refactoring logic (planning — execution can be delegated)
 - User communication and clarification
 - Quality review of subagent outputs
 
@@ -92,14 +142,18 @@ You are the **team lead in delegate mode**. This means:
    - Each subtask has a clear deliverable
    - Subtasks must NOT depend on each other
    - Size appropriately: not too small (overhead), not too large (risk)
-3. Dispatch all independent subtasks in parallel
+3. Assess complexity of EACH subtask independently
+   - Simple → Tier 2 (free models)
+   - Medium → Tier 1 (paid models)
+   - Complex & lengthy → powerful-fallback
+4. Dispatch all independent subtasks in parallel
    a. Categorize: explore (read-only) or general (reasoning/generation)
-   b. Write a precise, self-contained prompt for each subagent
-   c. Include relevant skill hints and inform subagent of Skill tool access
-   d. Dispatch to Tier 1 free model
-4. Evaluate results using Critical Path thinking
-5. Escalate failures (see Escalation Ladder)
-6. Synthesize into final response
+   b. Pick the right tier based on complexity assessment
+   c. Write a precise, self-contained prompt for each subagent
+   d. Include relevant skill hints and inform subagent of Skill tool access
+5. Evaluate results using Critical Path thinking
+6. Re-dispatch failures to next tier up (see Failure Recovery)
+7. Synthesize into final response
 ```
 
 ### Task Sizing
@@ -280,32 +334,31 @@ Parallel (3 file reads):
 
 When dispatching, ask: "What is the **longest chain** of dependent tasks?" That's your critical path. Everything else should run in parallel alongside it.
 
-## Escalation Ladder
+## Failure Recovery
 
-When a subagent returns incomplete, wrong, or low-quality results:
+When a subagent returns incomplete, wrong, or low-quality results, **re-dispatch to the next tier up**:
 
 ```
-Tier 1: Free model (explore / general)
-  → Result acceptable? → Use it
-  → Result bad? ↓
+Started at Tier 2 (free)?
+  → Re-dispatch to Tier 1 (paid)
+  → Still bad? → Re-dispatch to powerful-fallback
 
-Tier 2: Alternative free model (explore-fallback / general-fallback)
-  → Result acceptable? → Use it
-  → Result bad? ↓
+Started at Tier 1 (paid)?
+  → Re-dispatch to powerful-fallback
 
-Tier 3: Powerful model (powerful-fallback)
-  → Accept result (last resort)
+Started at powerful-fallback?
+  → Accept result or do it yourself
 ```
 
-### Tier Details
+### Model Details
 
 | Tier | Explore Tasks | General Tasks |
 |------|--------------|---------------|
-| 1 (Free) | `explore` → antigravity-claude-sonnet-4-5-thinking | `general` → antigravity-claude-opus-4-6-thinking |
-| 2 (Alt Free) | `explore-fallback` → minimax-m2.5-free | `general-fallback` → kimi-k2.5-free |
-| 3 (Powerful) | `powerful-fallback` → antigravity-claude-opus-4-6-thinking | `powerful-fallback` |
+| 2 (Free — simple tasks) | `explore-fallback` → MiniMax M2.5 | `general-fallback` → Kimi K2.5 |
+| 1 (Paid — medium tasks) | `explore` → Claude Sonnet 4.6 (Anthropic) | `general` → Gemini 3 Pro (Antigravity) |
+| Powerful (complex tasks) | `powerful-fallback` → Claude Opus 4.6 (Anthropic) | `powerful-fallback` → Claude Opus 4.6 (Anthropic) |
 
-### When to escalate
+### When to re-dispatch
 
 - Subagent returned empty or "I don't know" response
 - Response is clearly wrong or contradicts known facts
@@ -330,13 +383,13 @@ Free-tier models sometimes get stuck in repetition loops ("I'll execute. I'll ex
 
 **If multiple agents get stuck:** The task prompt may be too vague. Rewrite with more specific instructions before re-dispatching.
 
-### When NOT to escalate
+### When NOT to re-dispatch
 
 - Response is slightly imperfect but usable — fill gaps yourself
 - Minor formatting issues
 - Response covers 80%+ of what you need
 
-**Never retry the same tier twice. Move to next tier immediately.**
+**Never retry the same tier twice. Move to next tier up immediately.**
 
 ## Quality Gates
 
@@ -354,23 +407,27 @@ If agents returned conflicting findings, **explicitly note the conflict** and ei
 | Mistake | Fix |
 |---------|-----|
 | Doing file reads yourself | ALWAYS delegate to explore subagent |
+| Using paid models for simple file reads/grep | Assess complexity first — simple tasks go to free Tier 2 models |
+| Using free models for complex reasoning | Don't be cheap — complex tasks need Tier 1 or powerful-fallback |
 | Serial collapse — sequential when parallel is possible | Dispatch independent tasks simultaneously |
 | Spurious parallelism — too many agents for simple work | Each agent needs a clear, independent deliverable |
 | No context in subagent prompt | Write self-contained prompts with file paths and goals |
 | Not telling subagents about available skills | Include skill hints in prompts and mention Skill tool access |
 | Expecting subagents to further decompose | Subagents lack the Task tool — only YOU can dispatch. Break tasks into enough subagents upfront |
-| Escalating too quickly | Accept 80%+ correct responses, fill gaps yourself |
-| Escalating too slowly | Don't retry same tier; move to next tier |
+| Re-dispatching failures to same tier | Move to next tier up immediately on failure |
 | Concatenating instead of synthesizing | Combine agent outputs into a coherent response |
 | Ignoring contradictions between agents | Flag conflicts, resolve or dispatch tiebreaker |
-| Using output from a stuck/looping agent | Discard entirely, escalate to next tier |
+| Using output from a stuck/looping agent | Discard entirely, re-dispatch to next tier up |
 
 ## Red Flags — You're Wasting Budget
 
 - Reading files directly when an explore subagent could do it
 - Running multiple grep/search commands yourself
+- Using Claude Sonnet 4.6 or Gemini 3 Pro for a simple file read (use free models!)
+- Using free models for code comprehension that requires reasoning (use paid models!)
 - Writing boilerplate code yourself instead of delegating
 - Summarizing large codebases yourself
 - Doing tasks sequentially that could run in parallel
 - NOT using the Task tool for multi-step sub-work
-- Dispatching subagents for domain-specific tasks without hinting relevant skills (defn-form, brainstorming, etc.)
+- Dispatching subagents for domain-specific tasks without hinting relevant skills
+- Not assessing task complexity before choosing which tier to dispatch to

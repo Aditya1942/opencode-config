@@ -18,6 +18,7 @@ skills/
   team-agents/         # Subagent orchestration and delegation skill
 commands/
   update-superpowers.md  # Command to pull latest superpowers
+  antigravity-quota.md   # Command to check Antigravity API quota
 ```
 
 ## Build / Lint / Test Commands
@@ -39,11 +40,12 @@ There are no test commands. If you add tests, use Bun's built-in test runner (`b
 
 ## Custom Commands (defined in opencode.json)
 
-| Command         | Purpose                                              |
-|-----------------|------------------------------------------------------|
-| `/brainstorm`   | Invoke brainstorming skill before any creative work  |
-| `/write-plan`   | Create detailed implementation plan with tasks       |
-| `/execute-plan` | Execute plan in batches with review checkpoints      |
+| Command                | Purpose                                              |
+|------------------------|------------------------------------------------------|
+| `/brainstorm`          | Invoke brainstorming skill before any creative work  |
+| `/write-plan`          | Create detailed implementation plan with tasks       |
+| `/execute-plan`        | Execute plan in batches with review checkpoints      |
+| `/antigravity-quota`   | Check Antigravity API quota for all accounts         |
 
 ## Agent Architecture
 
@@ -52,17 +54,20 @@ There are no test commands. If you add tests, use Bun's built-in test runner (`b
 | Agent              | Model                         | Role                                    |
 |--------------------|-------------------------------|-----------------------------------------|
 | `build` (primary)  | (user-selected)               | Orchestration, complex reasoning, UX    |
-| `explore`          | Claude Sonnet 4.5 Thinking    | Codebase exploration, search, grep      |
-| `general`          | Claude Opus 4.6 Thinking      | Comprehension, summarization, code gen  |
+| `explore`          | Claude Sonnet 4.6 (Anthropic) | Codebase exploration, search, grep      |
+| `general`          | Gemini 3 Pro (Antigravity)    | Comprehension, summarization, code gen  |
 | `explore-fallback` | MiniMax M2.5 (free)           | Fallback exploration (read-only)        |
 | `general-fallback` | Kimi K2.5 (free)              | Fallback general tasks                  |
-| `powerful-fallback` | Claude Opus 4.6 Thinking     | Last-resort escalation                  |
-| `code-reviewer`    | (default)                     | Post-implementation review              |
+| `powerful-fallback` | Claude Opus 4.6 (Anthropic)  | Complex & lengthy tasks                 |
+| `code-reviewer`    | Gemini 3 Pro (Antigravity)    | Post-implementation review              |
 
-### Delegation Rules
+### Delegation Rules (Complexity-Based Dispatch)
 
-- **Delegate micro-tasks** (file reading, search, grep, comprehension) to subagents.
-- **Escalation ladder**: primary agent -> free model -> alt-free model -> powerful fallback.
+- **Assess complexity FIRST**, then route to the right tier:
+  - **Simple** (file reads, grep, lookups) → free models (`explore-fallback`, `general-fallback`)
+  - **Medium** (comprehension, code gen, multi-step) → paid models (`explore`, `general`)
+  - **Complex & lengthy** (deep analysis, multi-file reasoning) → `powerful-fallback`
+- **On failure**, re-dispatch to the next tier up (free → paid → powerful).
 - **Parallelize** independent sub-tasks. Avoid "serial collapse" (sequential when parallel is possible).
 - **Avoid** "spurious parallelism" (spawning agents without meaningful decomposition).
 - The primary agent handles orchestration, architectural decisions, and user communication.
