@@ -7,7 +7,7 @@ This document is designed for an AI agent to follow step-by-step to install this
 - **OpenCode configuration** with multi-model Antigravity provider support (Claude, Gemini)
 - **Superpowers skill framework** — 15 core workflow skills (TDD, debugging, planning, etc.)
 - **Custom skills** — 8 domain-specific skills (code review, frontend design, security, etc.)
-- **Team-agents orchestration** — cost-optimized subagent delegation with free-model fallbacks
+- **Orchestrator agent** — multi-agent coding orchestrator with provider-aware model routing, confidence-based escalation, and final authority enforcement
 - **Custom slash commands** (`/brainstorm`, `/write-plan`, `/execute-plan`)
 
 ---
@@ -152,7 +152,7 @@ After restart, verify the installation by asking the user to confirm these work:
 1. **Skills loaded**: Ask OpenCode: *"Do you have superpowers?"* — it should confirm the skill framework is active.
 2. **Skill tool works**: Use the `skill` tool to list available skills — should show both `superpowers/` and `claudepowers/` skills.
 3. **Commands available**: Try `/brainstorm` — should invoke the brainstorming skill.
-4. **Subagents configured**: Check that the agent hierarchy is visible (explore, general, fallbacks).
+4. **Agents configured**: Check that the orchestrator and code-reviewer agents are visible in the agent hierarchy.
 
 ---
 
@@ -215,10 +215,10 @@ Or use the built-in command inside OpenCode:
 3. Check custom skills exist: `ls ~/.config/opencode/skills/claudepowers/`
 4. Use the `skill` tool to list what's discovered
 
-### Subagents Not Working
+### Agents Not Working
 
-1. Verify `opencode.json` has the `agent` section with all 7 agents defined
-2. Check model availability — free models (`minimax-m2.5-free`, `kimi-k2.5-free`) should work without API keys
+1. Verify `opencode.json` has the `agent` section with `build`, `orchestrator`, and `code-reviewer` defined
+2. Check that the orchestrator model (`anthropic/claude-opus-4-6`) is accessible
 3. Antigravity models require auth — ensure `antigravity-accounts.json` is configured
 
 ### Tool Mapping (for Skills Written for Claude Code)
@@ -260,7 +260,7 @@ When skills reference Claude Code tools, OpenCode uses these equivalents:
 │   │   ├── plugin-dev/
 │   │   ├── pr-review-toolkit/
 │   │   └── security-guidance/
-│   └── team-agents/            # Subagent orchestration skill
+│   └── team-agents/            # Multi-agent coding architecture skill (19 sections)
 │       └── SKILL.md
 └── superpowers/                # Cloned from github.com/obra/superpowers (gitignored)
     ├── skills/                 # 15 core workflow skills

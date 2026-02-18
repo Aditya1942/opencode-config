@@ -26,19 +26,17 @@ The agent will fetch the installation document and execute every step to set up 
 | `AGENTS.md` | Agent instructions, coding standards, skill system docs |
 | `package.json` | Dependencies (`@opencode-ai/plugin`) |
 
-### Subagent Architecture
+### Agent Architecture
 
-A 7-agent hierarchy optimized for cost and quality:
+A multi-agent system with an intelligent orchestrator that routes tasks to optimal models:
 
-| Agent | Model | Role |
-|-------|-------|------|
-| `build` (primary) | User-selected | Orchestration, complex reasoning |
-| `explore` | Claude Sonnet 4.6 (Anthropic) | Codebase exploration, search |
-| `general` | Gemini 3 Pro (Antigravity) | Comprehension, code generation |
-| `explore-fallback` | GLM-5 (free) | Simple exploration (file reads, grep) |
-| `general-fallback` | Kimi K2.5 (free) | Simple general tasks |
-| `powerful-fallback` | Claude Opus 4.6 (Anthropic) | Complex & lengthy tasks |
-| `code-reviewer` | Gemini 3 Pro (Antigravity) | Post-implementation review |
+| Agent | Model | Mode | Role |
+|-------|-------|------|------|
+| `build` (primary) | User-selected | build/plan | Default agent, delegates complex tasks to orchestrator |
+| `orchestrator` | Claude Opus 4.6 (Anthropic) | build/plan | Multi-agent coding orchestrator — decomposes tasks into microtasks, routes to optimal models, executes parallel agents, confidence-based escalation |
+| `code-reviewer` | Gemini 3 Pro (Antigravity) | subagent | Post-implementation review |
+
+The `orchestrator` agent owns all model routing decisions. It decomposes tasks into a dependency DAG, assesses complexity, dispatches to the right model tier (free → paid → Opus), validates with dual-mode confidence scoring, and enforces final correctness via Anthropic Claude Opus 4.6. See the `team-agents` skill for the full 19-section architecture spec.
 
 ### 24 Skills
 
@@ -49,7 +47,7 @@ brainstorming, writing-plans, executing-plans, test-driven-development, systemat
 code-review, explanatory-output, feature-dev, frontend-design, hookify, plugin-dev, pr-review-toolkit, security-guidance
 
 **Orchestration**:
-team-agents (cost-optimized subagent delegation with complexity-based dispatch)
+team-agents (multi-agent coding architecture with provider-aware routing, confidence system, and escalation logic)
 
 ### Custom Commands
 
