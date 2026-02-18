@@ -7,7 +7,7 @@
   "small_model": "google/gemini-3-pro-preview",
   "agent": {
     "build": {
-      "prompt": "COST OPTIMIZATION: You MUST delegate micro-tasks to subagents instead of doing them yourself. ASSESS COMPLEXITY FIRST, then route to the right tier. SIMPLE tasks (file reads, grep, quick lookups): use 'explore-fallback' (MiniMax free) or 'general-fallback' (Kimi K2.5 free). MEDIUM tasks (code comprehension, multi-step exploration, code gen): use 'explore' (Claude Sonnet 4.6) or 'general' (Gemini 3 Pro). COMPLEX & LENGTHY tasks (deep analysis, multi-file reasoning, architectural review): use 'powerful-fallback' (Claude Opus 4.6). On failure, re-dispatch to next tier up. Parallelize independent sub-tasks. Only handle orchestration, complex reasoning, architectural decisions, and user communication yourself. Load the 'team-agents' skill for full dispatch details. AVOID serial collapse (doing things sequentially when parallel is possible) and spurious parallelism (spawning agents without meaningful decomposition)."
+      "prompt": "COST OPTIMIZATION: You MUST delegate micro-tasks to subagents instead of doing them yourself. ASSESS COMPLEXITY FIRST, then route to the right tier. SIMPLE tasks (file reads, grep, quick lookups): use 'explore-fallback' (GLM-5 free) or 'general-fallback' (Kimi K2.5 free). MEDIUM tasks (code comprehension, multi-step exploration, code gen): use 'explore' (Claude Sonnet 4.6) or 'general' (Gemini 3 Pro). COMPLEX & LENGTHY tasks (deep analysis, multi-file reasoning, architectural review): use 'powerful-fallback' (Claude Opus 4.6). On failure, re-dispatch to next tier up. Parallelize independent sub-tasks. Only handle orchestration, complex reasoning, architectural decisions, and user communication yourself. Load the 'team-agents' skill for full dispatch details. AVOID serial collapse (doing things sequentially when parallel is possible) and spurious parallelism (spawning agents without meaningful decomposition)."
     },
     "explore": {
       "model": "anthropic/claude-sonnet-4-6",
@@ -19,8 +19,8 @@
     },
     "explore-fallback": {
       "mode": "subagent",
-      "model": "opencode/minimax-m2.5-free",
-      "description": "Fallback exploration using free MiniMax model when primary explore fails",
+      "model": "opencode/glm-5-free",
+      "description": "Fallback exploration using free GLM-5 model when primary explore fails",
       "permission": {
         "edit": "deny",
         "bash": {

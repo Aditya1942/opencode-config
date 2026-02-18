@@ -56,7 +56,7 @@ There are no test commands. If you add tests, use Bun's built-in test runner (`b
 | `build` (primary)  | (user-selected)               | Orchestration, complex reasoning, UX    |
 | `explore`          | Claude Sonnet 4.6 (Anthropic) | Codebase exploration, search, grep      |
 | `general`          | Gemini 3 Pro (Antigravity)    | Comprehension, summarization, code gen  |
-| `explore-fallback` | MiniMax M2.5 (free)           | Fallback exploration (read-only)        |
+| `explore-fallback` | GLM-5 (free)                  | Fallback exploration (read-only)        |
 | `general-fallback` | Kimi K2.5 (free)              | Fallback general tasks                  |
 | `powerful-fallback` | Claude Opus 4.6 (Anthropic)  | Complex & lengthy tasks                 |
 | `code-reviewer`    | Gemini 3 Pro (Antigravity)    | Post-implementation review              |

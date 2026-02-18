@@ -99,7 +99,7 @@ digraph dispatch {
 
 | Complexity | When to Use | Explore Agent | General Agent |
 |------------|-------------|---------------|---------------|
-| **Simple** | File reads, grep, quick lookups, listing directories, simple searches | `explore-fallback` (MiniMax M2.5) | `general-fallback` (Kimi K2.5) |
+| **Simple** | File reads, grep, quick lookups, listing directories, simple searches | `explore-fallback` (GLM-5) | `general-fallback` (Kimi K2.5) |
 | **Medium** | Code comprehension, multi-step exploration, code generation, summarization | `explore` (Claude Sonnet 4.6) | `general` (Gemini 3 Pro) |
 | **Complex & lengthy** | Deep analysis, large refactors, multi-file reasoning, architectural review | `powerful-fallback` (Claude Opus 4.6) | `powerful-fallback` (Claude Opus 4.6) |
 
@@ -354,7 +354,7 @@ Started at powerful-fallback?
 
 | Tier | Explore Tasks | General Tasks |
 |------|--------------|---------------|
-| 2 (Free — simple tasks) | `explore-fallback` → MiniMax M2.5 | `general-fallback` → Kimi K2.5 |
+| 2 (Free — simple tasks) | `explore-fallback` → GLM-5 | `general-fallback` → Kimi K2.5 |
 | 1 (Paid — medium tasks) | `explore` → Claude Sonnet 4.6 (Anthropic) | `general` → Gemini 3 Pro (Antigravity) |
 | Powerful (complex tasks) | `powerful-fallback` → Claude Opus 4.6 (Anthropic) | `powerful-fallback` → Claude Opus 4.6 (Anthropic) |
 

@@ -35,7 +35,7 @@ A 7-agent hierarchy optimized for cost and quality:
 | `build` (primary) | User-selected | Orchestration, complex reasoning |
 | `explore` | Claude Sonnet 4.6 (Anthropic) | Codebase exploration, search |
 | `general` | Gemini 3 Pro (Antigravity) | Comprehension, code generation |
-| `explore-fallback` | MiniMax M2.5 (free) | Simple exploration (file reads, grep) |
+| `explore-fallback` | GLM-5 (free) | Simple exploration (file reads, grep) |
 | `general-fallback` | Kimi K2.5 (free) | Simple general tasks |
 | `powerful-fallback` | Claude Opus 4.6 (Anthropic) | Complex & lengthy tasks |
 | `code-reviewer` | Gemini 3 Pro (Antigravity) | Post-implementation review |
