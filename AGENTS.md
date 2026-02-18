@@ -49,28 +49,26 @@ There are no test commands. If you add tests, use Bun's built-in test runner (`b
 
 ## Agent Architecture
 
-### Subagent Hierarchy
+### Agent Hierarchy
 
-| Agent              | Model                         | Role                                    |
-|--------------------|-------------------------------|-----------------------------------------|
-| `build` (primary)  | (user-selected)               | Orchestration, complex reasoning, UX    |
-| `explore`          | Claude Sonnet 4.6 (Anthropic) | Codebase exploration, search, grep      |
-| `general`          | Gemini 3 Pro (Antigravity)    | Comprehension, summarization, code gen  |
-| `explore-fallback` | GLM-5 (free)                  | Fallback exploration (read-only)        |
-| `general-fallback` | Kimi K2.5 (free)              | Fallback general tasks                  |
-| `powerful-fallback` | Claude Opus 4.6 (Anthropic)  | Complex & lengthy tasks                 |
-| `code-reviewer`    | Gemini 3 Pro (Antigravity)    | Post-implementation review              |
+| Agent              | Model                         | Role                                    | Mode      |
+|--------------------|-------------------------------|-----------------------------------------|-----------|
+| `build` (primary)  | (user-selected)               | Default primary agent, delegates complex tasks to orchestrator | build/plan |
+| `orchestrator`     | Claude Opus 4.6 (Anthropic)   | Multi-agent coding orchestrator — decomposes tasks into microtasks, routes to optimal models, executes parallel agents, confidence-based escalation, final authority enforcement | build/plan |
+| `code-reviewer`    | Gemini 3 Pro (Antigravity)    | Post-implementation review              | subagent  |
 
-### Delegation Rules (Complexity-Based Dispatch)
+### Orchestrator Architecture
 
-- **Assess complexity FIRST**, then route to the right tier:
-  - **Simple** (file reads, grep, lookups) → free models (`explore-fallback`, `general-fallback`)
-  - **Medium** (comprehension, code gen, multi-step) → paid models (`explore`, `general`)
-  - **Complex & lengthy** (deep analysis, multi-file reasoning) → `powerful-fallback`
-- **On failure**, re-dispatch to the next tier up (free → paid → powerful).
-- **Parallelize** independent sub-tasks. Avoid "serial collapse" (sequential when parallel is possible).
-- **Avoid** "spurious parallelism" (spawning agents without meaningful decomposition).
-- The primary agent handles orchestration, architectural decisions, and user communication.
+The `orchestrator` agent is the central intelligence of the multi-agent system. It:
+- Decomposes user tasks into a dependency DAG of microtasks
+- Routes each microtask to the optimal model (see routing table in its system prompt)
+- Executes parallel micro-agents for independent subtasks
+- Validates outputs with dual-mode confidence scoring (self-report + independent assessment)
+- Enforces final correctness via Anthropic Claude Opus 4.6 (Final Authority Rule)
+- Operates in **build mode** (full execution) and **plan mode** (read-only analysis)
+
+The full architecture spec is in the `team-agents` skill (19 sections covering model routing,
+confidence system, escalation logic, memory architecture, swarm mode, and more).
 
 ## Skills System
 
