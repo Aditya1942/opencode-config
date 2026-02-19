@@ -1,23 +1,761 @@
 ---
 name: team-agents
-description: "Use when receiving any task that involves sub-tasks like file reading, code comprehension, searching, or simple code generation - delegates micro-work to free models to save API costs"
+description: "Use when receiving any task that involves sub-tasks like file reading, code comprehension, searching, or simple code generation - delegates micro-work to specialized models based on task type"
 ---
 
 # Multi-Agent Coding Architecture
 
-## 1. Overview
+## 1. Available Models
 
-You are an **orchestrator** in a multi-agent, provider-aware, cost-optimized coding system. Your job is to:
+The orchestrator has access to the following models. Each model has a dedicated role and a specific fallback chain. The final fallback for every role is **Claude Opus 4.6**.
 
-- **Decompose** user tasks into microtasks
-- **Route** each microtask to the optimal model/agent
-- **Execute** parallel micro-agents
-- **Validate** outputs with confidence-based escalation
-- **Enforce** final correctness via Anthropic Claude Opus 4.6
+### Priority Order
 
-**Core principle:** Orchestrate, don't implement. Assess complexity, route to the right tier, parallelize aggressively, escalate when confidence is low.
+```
+1. FREE MODELS FIRST      → Always try OpenCode Zen free models
+2. CLAUDE SONNET 4.6       → General-purpose workhorse for real coding work
+3. Z.AI MODELS (GLM 4.7)  → Extra capacity / fallback when free models fail and Sonnet isn't needed
+4. CLAUDE OPUS 4.6         → Final authority, security, complex logic — last resort
+```
 
-## 2. When to Use
+### Quick Reference
+
+| Priority | Model | ID | Provider | Cost | Context | Speed | Role |
+|----------|-------|-----|----------|------|---------|-------|------|
+| 1st | GLM 5 Free | `opencode/glm-5-free` | OpenCode Zen | Free | 128K | Very fast | File Explorer |
+| 1st | Kimi K2.5 Free | `opencode/kimi-k2.5-free` | OpenCode Zen | Free | 128K | Fast | Code Comprehension |
+| 1st | MiniMax M2.5 Free | `opencode/minimax-m2.5-free` | OpenCode Zen | Free | 128K | Fast | Lightweight Transform |
+| 1st | Big Pickle | `opencode/big-pickle` | OpenCode Zen | Free | 128K | Fast | Pattern Analysis |
+| 1st | GPT-5 Nano | `opencode/gpt-5-nano` | OpenCode Zen | Free | 400K | Very fast | Validation |
+| 2nd | Claude Sonnet 4.6 | `anthropic/claude-sonnet-4-6` | Anthropic | Paid | 200K–1M | Fast | General Purpose (features, tests, review, refactoring) |
+| 3rd | GLM 4.7 Flash | `zai-coding-plan/glm-4.7-flash` | Z.AI Coding Plan | Paid | 128K | Fast | Extra: fallback exploration |
+| 3rd | GLM 4.7 FlashX | `zai-coding-plan/glm-4.7-flashx` | Z.AI Coding Plan | Paid | 128K | Moderate | Extra: fallback deep analysis |
+| 3rd | GLM 4.7 | `zai-coding-plan/glm-4.7` | Z.AI Coding Plan | Paid | 128K | Moderate | Extra: fallback code execution |
+| 4th | Claude Opus 4.6 | `anthropic/claude-opus-4-6` | Anthropic | Premium | 200K–1M | Moderate | Final Authority / Security / Complex Logic |
+
+---
+
+## 2. Model Documentation
+
+Each model below is documented with its role, strengths, prompting guide, anti-patterns, and fallback chain. The orchestrator identifies the task type and routes directly to the specialist.
+
+---
+
+### 2.1 GLM 5 Free — File Explorer
+
+**Role:** Primary file reader and codebase navigator.
+**ID:** `opencode/glm-5-free` · **Subagent type:** `explore` · **Temperature:** 0.4
+
+**Capabilities:**
+- Read single files and return contents accurately
+- Grep/search for patterns across directories
+- List directory structures and file trees
+- Check file/function existence
+- Extract specific sections from known files
+- High-volume parallel reads (fan-out 5–10 files simultaneously)
+
+**How to use this model well:**
+- Give explicit file paths — never ask it to "find" things without a starting directory
+- One clear deliverable per prompt: "Read this file and list all exports"
+- Keep prompts short and direct — best with simple, unambiguous instructions
+- Ideal for fan-out: dispatch 5–10 GLM 5 agents reading different files in parallel
+- Use for the "gather raw data" phase before sending results to comprehension models
+
+**What to avoid:**
+- Don't ask it to reason about code logic — it reads, it doesn't think
+- Don't send multi-step reasoning tasks — it will hallucinate conclusions
+- Don't ask it to generate or modify code
+- Don't rely on it for understanding relationships between files
+
+**Prompt template:**
+```
+Read the file at {path}. Return its contents.
+List all exported functions with their line numbers.
+
+Return as JSON:
+{
+  "file": "",
+  "exports": [{"name": "", "line": 0}],
+  "confidence": 0.0
+}
+```
+
+**Fallback chain:** GPT-5 Nano → GLM 4.7 Flash (extra) → Claude Opus 4.6
+
+---
+
+### 2.2 Kimi K2.5 Free — Code Comprehension
+
+**Role:** Primary code reader and understanding engine. Reads code and explains what it does, how modules connect, and where important logic lives.
+**ID:** `opencode/kimi-k2.5-free` · **Subagent type:** `explore` · **Temperature:** 0.4
+
+**Capabilities:**
+- Understand how a module works and summarize its purpose
+- Trace data flow across multiple files
+- Build dependency maps (what imports what, what calls what)
+- Identify entry points and public API surfaces
+- Search + comprehend results across a codebase
+- Agent swarm tasks — works well dispatched in parallel for competing hypotheses
+- Visual coding context understanding
+
+**How to use this model well:**
+- Provide all relevant file paths upfront — it handles 3–8 files in one prompt well
+- Ask it to explain relationships: "How does module A call module B?"
+- Use for "understand before implementing" phases — dispatch before code generation
+- For debugging, dispatch multiple Kimi agents with different theories in parallel (competing hypotheses)
+- Give clear boundaries: "Only analyze files in src/auth/"
+- It excels when you ask specific questions rather than open-ended exploration
+
+**What to avoid:**
+- Don't ask it to write production code — it understands, it doesn't generate well
+- Don't use for simple file reads (use GLM 5 Free — it's faster for that)
+- Don't ask it to make modifications or produce patch diffs
+- Don't send vague prompts like "tell me about the codebase" — scope it down
+
+**Prompt template:**
+```
+Analyze the following files: {file_list}
+
+Explain:
+1. What each file's primary responsibility is
+2. How they depend on each other (imports, calls)
+3. Where the main entry point is
+4. Any patterns or issues you notice
+
+Return as JSON:
+{
+  "files_analyzed": [],
+  "dependencies": {},
+  "entry_points": [],
+  "observations": [],
+  "confidence": 0.0
+}
+```
+
+**Fallback chain:** Claude Sonnet 4.6 → GLM 4.7 FlashX (extra) → Claude Opus 4.6
+
+---
+
+### 2.3 MiniMax M2.5 Free — Lightweight Transform
+
+**Role:** Mechanical code transformer. Handles renames, formatting, simple refactors, and boilerplate generation without changing logic.
+**ID:** `opencode/minimax-m2.5-free` · **Subagent type:** `general` · **Temperature:** 0.2
+
+**Capabilities:**
+- Rename variables/functions across files consistently
+- Reformat code to match style guidelines
+- Convert between patterns (e.g., callbacks → promises, CJS → ESM)
+- Generate boilerplate and stubs from specifications
+- Simple refactors: extract function, inline variable, reorganize imports
+- Multilingual coding — trained on 10+ languages (Go, C, C++, TypeScript, Rust, Kotlin, Python, Java, JS, PHP, Lua, Dart, Ruby)
+- SOTA-level coding performance (80.2% SWE-Bench Verified) for a free model
+- Thinks architecturally — decomposes tasks before executing, writes specs before code
+
+**How to use this model well:**
+- Be extremely specific about what to change and what NOT to change
+- Provide before/after examples when possible
+- For renames, list every file that needs the change
+- State explicitly: "Do not change any logic, conditionals, or error handling"
+- Let it decompose larger transforms into steps — it plans naturally
+- It's surprisingly capable for a free model — trust it for mechanical work
+- Great for generating boilerplate: "Generate a React component stub matching this pattern"
+
+**What to avoid:**
+- Don't let it touch logic (conditionals, loops, error handling) — escalate to Code Generation role
+- Don't use for security-sensitive code modifications
+- Don't trust it for async/concurrency changes
+- Don't use it for complex multi-step reasoning that requires deep understanding
+
+**Prompt template:**
+```
+In the following files: {file_list}
+
+Rename all occurrences of `{old_name}` to `{new_name}`.
+
+Rules:
+- Only rename the identifier, do not change any logic
+- Update imports, exports, and references
+- Preserve all formatting and comments
+
+Return as JSON:
+{
+  "patch_diff": "...",
+  "changes": ["description of each change"],
+  "files_modified": [],
+  "confidence": 0.0
+}
+```
+
+**Fallback chain:** Claude Sonnet 4.6 → GLM 4.7 (extra) → Claude Opus 4.6
+
+---
+
+### 2.4 Big Pickle — Pattern Analysis
+
+**Role:** Codebase-wide pattern detector and summarizer. Scans large surfaces for recurring patterns, anti-patterns, and structural trends.
+**ID:** `opencode/big-pickle` · **Subagent type:** `explore` · **Temperature:** 0.4
+
+**Capabilities:**
+- Detect repeated patterns across a codebase (e.g., "all API routes follow X pattern")
+- Summarize module purposes across many files quickly
+- Find anti-patterns and inconsistencies
+- Identify deprecated API usages across modules
+- Aggregate findings from multiple directories into a unified view
+- Breadth over depth — scanning many files, not deep-diving one
+
+**How to use this model well:**
+- Give it a clear pattern to look for: "Find all files that use raw SQL queries"
+- Use in swarm mode — dispatch one Big Pickle per module/directory
+- Ask for structured categorization, not free-text analysis
+- Best for the "survey" phase — get a broad picture before deep-diving specific areas
+- Combine with a validator — its findings should be verified before acting on them
+
+**What to avoid:**
+- Don't ask for deep code comprehension (use Kimi K2.5 for that)
+- Don't ask it to generate or modify code
+- Don't use for precision tasks where false positives matter — always validate findings
+- Don't use for security audits — it finds patterns, not vulnerabilities
+
+**Prompt template:**
+```
+Scan all files in {directory}.
+
+Find all occurrences of {pattern_description}.
+Categorize each finding by: file path, line number, severity, and context.
+
+Return as JSON:
+{
+  "findings": [{"file": "", "line": 0, "category": "", "context": ""}],
+  "summary": "",
+  "total_files_scanned": 0,
+  "confidence": 0.0
+}
+```
+
+**Fallback chain:** Kimi K2.5 Free → GLM 4.7 FlashX (extra) → Claude Opus 4.6
+
+---
+
+### 2.5 GPT-5 Nano — Validation
+
+**Role:** Output validator and format checker. Verifies that other models' outputs are correct, complete, and properly structured.
+**ID:** `opencode/gpt-5-nano` · **Subagent type:** `explore` · **Temperature:** 0.2
+
+**Capabilities:**
+- Validate JSON structure and schema compliance
+- Check completeness — did the output cover all requested items?
+- Detect hallucinated imports or dependencies
+- Verify patch consistency (files_modified matches actual changes)
+- Format validation and structural checks
+- Massive 400K context window — can validate very large outputs
+- Structured output mode — excels at returning well-formed JSON
+- Fastest GPT-5 variant — $0.05/$0.40 per MTok (input/output)
+
+**How to use this model well:**
+- Give it the original task description AND the output to validate — it needs both
+- Provide a clear checklist of what "valid" means for this specific output
+- Ask for binary pass/fail plus specific issues found
+- Use structured output mode for consistent validation results
+- Dispatch it automatically after every code generation task
+- Its 400K context means it can validate outputs from models with smaller contexts
+
+**What to avoid:**
+- Don't use for deep code reasoning or correctness analysis — it checks structure, not logic
+- Don't ask it to fix issues it finds — it validates, it doesn't implement
+- Don't rely on it alone for security validation (always use Claude Opus 4.6 for security)
+- Don't ask it to generate code
+
+**Prompt template:**
+```
+Validate the following output against the original task.
+
+Original task: {task_description}
+Output to validate: {agent_output}
+
+Check for:
+1. Completeness — does the output address all parts of the task?
+2. JSON validity — is the output properly structured?
+3. Hallucinations — any imports, files, or dependencies that don't exist?
+4. Consistency — does files_modified match the actual patch_diff?
+
+Return as JSON:
+{
+  "is_valid": true,
+  "issues_found": [],
+  "missing_elements": [],
+  "requires_escalation": false,
+  "confidence": 0.0
+}
+```
+
+**Fallback chain:** Claude Sonnet 4.6 → GLM 4.7 Flash (extra) → Claude Opus 4.6
+
+---
+
+### 2.6 GLM 4.7 Flash — Extra: Fallback Explorer
+
+**Role:** Extra capacity explorer. **Not a primary model.** Only used when free models (GLM 5 Free, GPT-5 Nano) fail at exploration tasks and the task doesn't warrant Sonnet 4.6.
+**ID:** `zai-coding-plan/glm-4.7-flash` · **Subagent type:** `explore` · **Temperature:** 0.4
+
+**Capabilities:**
+- Everything GLM 5 Free does, but with higher accuracy and light reasoning
+- Multi-file search with basic reasoning about results
+- Dependency tracing when the structure is straightforward
+- Quick re-validation when GPT-5 Nano's output needs a second check
+
+**When to use (fallback only):**
+- A free model failed at an exploration task and the task is too simple for Sonnet
+- GPT-5 Nano validation was inconclusive and you need a quick second opinion
+- You need slightly better reasoning than free models but don't need full Sonnet intelligence
+
+**What to avoid:**
+- Don't use as first choice — always try free models first
+- Don't use for code generation — use Claude Sonnet 4.6
+- Don't use for deep multi-file analysis — use Sonnet 4.6 or Opus
+
+**Fallback chain:** Claude Sonnet 4.6 → Claude Opus 4.6
+
+---
+
+### 2.7 GLM 4.7 FlashX — Extra: Fallback Deep Analysis
+
+**Role:** Extra capacity deep analyzer. **Not a primary model.** Only used as a fallback when Kimi K2.5 Free fails at comprehension and the task doesn't require Sonnet-level intelligence.
+**ID:** `zai-coding-plan/glm-4.7-flashx` · **Subagent type:** `explore` · **Temperature:** 0.3
+
+**Capabilities:**
+- Multi-file deep comprehension (5–15 files)
+- Architecture analysis — how modules interact, data flow, system boundaries
+- Impact analysis — "if I change this, what breaks?"
+- Complex dependency tracing across layers
+
+**When to use (fallback only):**
+- Kimi K2.5 Free failed at a comprehension task
+- Big Pickle failed at pattern analysis and you need a second pass
+- The task needs more depth than free models but is too narrow for Sonnet
+
+**What to avoid:**
+- Don't use as first choice — try Kimi K2.5 Free first
+- Don't ask it to generate code — it analyzes only
+- Don't use for security analysis (use Claude Opus 4.6)
+
+**Prompt template:**
+```
+Analyze the architecture of {module/feature}.
+
+Files to examine: {file_list}
+
+Determine:
+1. How the components interact (call graph, data flow)
+2. What the public API surface is
+3. What would break if {proposed_change} were made
+4. What files would need to change for {proposed_change}
+
+Return as JSON:
+{
+  "architecture_summary": "",
+  "component_interactions": [],
+  "public_api": [],
+  "impact_analysis": {"files_affected": [], "risk_areas": []},
+  "confidence": 0.0
+}
+```
+
+**Fallback chain:** Claude Sonnet 4.6 → Claude Opus 4.6
+
+---
+
+### 2.8 GLM 4.7 — Extra: Fallback Code Executor
+
+**Role:** Extra capacity code executor. **Not a primary model.** Only used when MiniMax M2.5 Free fails at a transform/boilerplate task and the task is too small to justify Sonnet 4.6.
+**ID:** `zai-coding-plan/glm-4.7` · **Subagent type:** `general` · **Temperature:** 0.2
+
+**Capabilities:**
+- Execute well-defined, focused code changes
+- Apply patches and make targeted edits to files
+- Run commands and report results
+- Write single functions or small code units from clear specs
+- Follow explicit instructions with high reliability
+- 128K context window
+
+**When to use (fallback only):**
+- MiniMax M2.5 Free failed at a lightweight transform
+- You have a very precise, pre-digested microtask that doesn't need Sonnet's intelligence
+- The task is a simple, mechanical code change (1–2 files) where Sonnet would be overkill
+
+**What to avoid:**
+- Don't use as first choice — try free models first, then Sonnet 4.6
+- Don't use for tasks requiring reasoning or architectural judgment — use Sonnet 4.6
+- Don't use for security-sensitive code — use Claude Opus 4.6
+- Don't use for async/concurrency logic — use Sonnet 4.6 or Opus
+- Don't ask it to modify more than 3 files at once — use Sonnet 4.6
+
+**Prompt template:**
+```
+Execute the following task: {precise_task_description}
+
+Context from prior analysis:
+{explorer_output}
+
+Files to modify: {file_list}
+Project conventions: {conventions}
+
+Rules:
+- Follow existing patterns in the codebase
+- No hallucinated imports — only use packages in package.json
+- Declare all files_modified
+
+Return as JSON:
+{
+  "summary": "",
+  "patch_diff": "...",
+  "files_modified": [],
+  "confidence": 0.0
+}
+```
+
+**Fallback chain:** Claude Sonnet 4.6 → Claude Opus 4.6
+
+---
+
+### 2.9 Claude Sonnet 4.6 — General Purpose
+
+**Role:** The general-purpose workhorse. Handles feature implementation, test writing, code review, standard refactoring, and any task that needs both speed and intelligence. The default choice for most coding work that free models can't handle.
+**ID:** `anthropic/claude-sonnet-4-6` · **Subagent type:** `general` · **Temperature:** 0.2 (code gen), 0.3 (tests), 0.4 (analysis)
+
+**Capabilities:**
+- Feature implementation from specifications — full functions, modules, API endpoints
+- Writing comprehensive unit tests and integration tests
+- Code review against standards and best practices
+- Standard refactoring that involves logic changes
+- Multi-file coordinated changes (up to 5 files comfortably)
+- Debugging with moderate reasoning chains
+- Extended thinking for non-trivial problems
+- Adaptive thinking — adjusts reasoning depth to problem complexity
+- 200K–1M context window (1M with beta header), 64K max output
+- Training data cutoff: Jan 2026 — the most current knowledge of any model in the system
+- Fast latency — significantly faster than Opus
+- $3/$15 per MTok — 40% cheaper than Opus
+
+**How to use this model well:**
+- Use it as the primary model for all standard feature work, test generation, and code review
+- Provide context from explorer/comprehension agents — it works best with pre-gathered context
+- Include the project's coding conventions, test framework, and lint rules
+- Give explicit file paths and clear specifications
+- Include existing code patterns as examples: "Follow the pattern in {existing_file}"
+- Enable extended thinking for problems that need step-by-step reasoning
+- Use for code review: give it the original plan + implementation and ask it to review
+- Use for test generation: provide the implementation + test framework patterns
+
+**What to avoid:**
+- Don't use for security audits or vulnerability analysis — always use Claude Opus 4.6
+- Don't use for multi-file changes >5 files — escalate to Opus
+- Don't use for async/concurrency-heavy logic where correctness is critical — use Opus
+- Don't use for simple file reads or searches (use free models)
+- Don't use for simple renames or formatting (use MiniMax M2.5 Free)
+
+**Prompt template (feature implementation):**
+```
+Implement the following feature: {feature_description}
+
+Context from prior analysis:
+{explorer_output}
+
+Files to modify: {file_list}
+Project conventions: {conventions}
+Test framework: {test_framework}
+
+Rules:
+- Follow existing patterns in the codebase
+- No hallucinated imports — only use packages that exist in package.json
+- Handle edge cases: {edge_cases}
+- Write defensive code: null checks, early returns, error handling
+- Declare all files_modified
+
+Return as JSON:
+{
+  "summary": "",
+  "patch_diff": "...",
+  "files_modified": [],
+  "edge_cases_considered": [],
+  "tests_needed": [],
+  "confidence": 0.0,
+  "risk_flags": []
+}
+```
+
+**Prompt template (code review):**
+```
+Review the following implementation against the original requirements.
+
+Original task: {task_description}
+Implementation: {code_or_diff}
+Project conventions: {conventions}
+
+Assess:
+1. Does the implementation satisfy all requirements?
+2. Are there bugs, edge cases, or logic errors?
+3. Does it follow project conventions and patterns?
+4. Are there any performance concerns?
+5. Is error handling adequate?
+
+Return as JSON:
+{
+  "approved": true,
+  "issues": [{"severity": "critical|major|minor|suggestion", "location": "", "description": "", "fix": ""}],
+  "confidence": 0.0
+}
+```
+
+**Prompt template (test generation):**
+```
+Write tests for the following implementation: {implementation_description}
+
+Code to test: {code}
+Test framework: {test_framework}
+Existing test patterns: {example_test}
+
+Cover:
+- Happy path for each public function
+- Edge cases: {edge_cases}
+- Error paths and error handling
+- Boundary conditions
+
+Return as JSON:
+{
+  "test_files": [{"path": "", "content": ""}],
+  "coverage_targets": [],
+  "confidence": 0.0
+}
+```
+
+**Fallback chain:** Claude Opus 4.6
+
+---
+
+### 2.10 Claude Opus 4.6 — Final Authority / Security / Complex Logic
+
+**Role:** The final fallback for everything, and the primary model for security, complex reasoning, and architectural decisions. Never skipped for security tasks. No model overrides its judgment.
+**ID:** `anthropic/claude-opus-4-6` · **Subagent type:** `powerful-fallback` · **Temperature:** 0.1 (security), 0.2 (code gen), 0.3 (analysis)
+
+**Capabilities:**
+- Security audits and vulnerability analysis — XSS, SQL injection, auth bypass, CSRF, SSRF
+- Complex async/concurrency logic where correctness is critical
+- Multi-file changes spanning 5+ files with coordination
+- Architectural decisions and system design
+- Deep debugging requiring long reasoning chains (10+ steps)
+- Extended thinking for problems that need thorough step-by-step analysis
+- Final validation when other validators fail
+- 200K–1M context window (1M with beta header), 128K max output — largest output of any model
+- Most intelligent model in the system — top-tier reasoning, coding, and analysis
+- $5/$25 per MTok — use when the task justifies the cost
+
+**How to use this model well:**
+- Provide full context — it can handle massive inputs with its 200K–1M context
+- For security: be explicit about what to check (XSS, SQL injection, auth bypass, etc.)
+- Enable extended thinking for complex architectural decisions
+- Use as the final judge — provide the original task + all prior agent outputs
+- For debugging, give the full error trace, relevant code, and what's been tried already
+- Use for any task where prior models reported low confidence (<0.65)
+- Use for multi-file changes >5 files where coordination matters
+- Use for auth/crypto/authorization logic — no exceptions
+
+**What to avoid:**
+- Don't use for simple file reads or searches — it's expensive
+- Don't use as first choice for standard feature implementation (use Sonnet 4.6 first)
+- Don't waste it on formatting, renames, or boilerplate (use MiniMax M2.5 Free)
+- Don't skip it for security reviews — this is non-negotiable
+
+**Prompt template (security audit):**
+```
+Perform a security audit on the following code.
+
+Files: {file_list}
+Code context: {code}
+
+Check for:
+1. Injection vulnerabilities (SQL, XSS, command injection)
+2. Authentication/authorization bypass
+3. Insecure cryptographic practices
+4. Input validation gaps
+5. Sensitive data exposure
+6. CSRF, SSRF, path traversal
+
+Return as JSON:
+{
+  "vulnerabilities": [{"type": "", "location": "", "severity": "critical|high|medium|low", "description": "", "fix": ""}],
+  "severity_summary": {"critical": 0, "high": 0, "medium": 0, "low": 0},
+  "overall_risk": "",
+  "confidence": 0.0
+}
+```
+
+**Prompt template (final authority validation):**
+```
+You are the final authority. Validate the following work.
+
+Original task: {task_description}
+Agent outputs: {all_agent_outputs}
+
+Assess:
+1. Does the implementation fully satisfy the task?
+2. Are there any bugs, edge cases, or logic errors?
+3. Are there hallucinated imports or dependencies?
+4. Is the code secure?
+5. Would you approve this for production?
+
+Return as JSON:
+{
+  "approved": true,
+  "issues": [],
+  "severity": "none|minor|major|critical",
+  "confidence": 0.0
+}
+```
+
+**Fallback chain:** None — this IS the final fallback.
+
+---
+
+## 3. Role-Based Routing Map
+
+### Agent Name Mapping
+
+These are the actual `subagent_type` values to use when dispatching via the Task tool:
+
+| Abstract Role | subagent_type | Model | Configured In |
+|---|---|---|---|
+| File Explorer | `explore` | opencode/glm-5-free | opencode.json |
+| Code Comprehension | `general` | opencode/kimi-k2.5-free | opencode.json |
+| Lightweight Transform | `transform` | opencode/minimax-m2.5-free | opencode.json |
+| Output Validator | `validator` | opencode/gpt-5-nano | opencode.json |
+| Code Executor | `executor` | zai-coding-plan/glm-4.7 | opencode.json |
+| Code Reviewer | `code-reviewer` | zai-coding-plan/glm-4.7 | opencode.json |
+| Final Authority | (orchestrator itself) | anthropic/claude-opus-4-6 | opencode.json |
+
+> **Important:** Always use the `subagent_type` column value when dispatching tasks. These map directly to agent definitions in `opencode.json`. If you add or rename agents, update this table.
+
+### Routing Logic
+
+The orchestrator identifies the task type and routes to the right model following the priority order: **Free first → Sonnet 4.6 → Z.AI extras → Opus 4.6**.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                       ORCHESTRATOR                          │
+│        Identifies task type → routes by priority            │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+          ┌──────────────┼──────────────┐
+          ▼              ▼              ▼
+   ┌─────────────┐ ┌──────────┐ ┌─────────────┐
+   │ Simple task? │ │Real work?│ │ Security /  │
+   │ Read/search/ │ │Code gen/ │ │ Complex /   │
+   │ comprehend/  │ │tests/    │ │ Async /     │
+   │ transform/   │ │review/   │ │ Multi-file  │
+   │ validate/    │ │refactor/ │ │ >5 / Auth   │
+   │ pattern scan │ │debug     │ │             │
+   └──────┬───────┘ └────┬─────┘ └──────┬──────┘
+          ▼              ▼              ▼
+   ┌─────────────┐ ┌──────────┐ ┌─────────────┐
+   │ FREE MODELS │ │ CLAUDE   │ │ CLAUDE      │
+   │ (1st pick)  │ │ SONNET   │ │ OPUS 4.6    │
+   │             │ │ 4.6      │ │ (direct)    │
+   │ GLM 5 Free  │ │ (2nd)    │ │             │
+   │ Kimi K2.5   │ │          │ │ No fallback │
+   │ MiniMax M2.5│ └────┬─────┘ │ needed      │
+   │ Big Pickle  │      │       └─────────────┘
+   │ GPT-5 Nano  │      │              ▲
+   └──────┬───────┘      │              │
+          │ fail         │ fail         │
+          ▼              ▼              │
+   ┌─────────────┐ ┌──────────┐        │
+   │ Z.AI EXTRAS │ │ CLAUDE   │        │
+   │ (3rd, only  │ │ OPUS 4.6 │────────┘
+   │ if needed)  │ │ (final)  │
+   │             │ └──────────┘
+   │ GLM 4.7 Fl  │      ▲
+   │ GLM 4.7 FlX │      │
+   │ GLM 4.7     │      │
+   └──────┬───────┘      │
+          │ fail         │
+          └──────────────┘
+```
+
+### Task-Type Detection Rules
+
+| Task Type | Primary Model | Priority | Detection Signals |
+|-----------|--------------|----------|-------------------|
+| **file_read** | GLM 5 Free | 1st (free) | "read", "cat", "show me", single file path, "list files" |
+| **search** | GLM 5 Free | 1st (free) | "grep", "find", "search for", pattern + directory |
+| **comprehend** | Kimi K2.5 Free | 1st (free) | "explain", "how does X work", "analyze", "understand", multiple files |
+| **transform** | MiniMax M2.5 Free | 1st (free) | "rename", "reformat", "convert", "refactor" (no logic change) |
+| **pattern_scan** | Big Pickle | 1st (free) | "find all", "scan for", "audit" (non-security), bulk analysis |
+| **validate** | GPT-5 Nano | 1st (free) | "check", "verify", "validate", after another agent's output |
+| **generate_code** | Claude Sonnet 4.6 | 2nd (paid) | "implement", "write", "create", "add feature", "build" |
+| **write_tests** | Claude Sonnet 4.6 | 2nd (paid) | "write tests", "add test coverage", "test this" |
+| **code_review** | Claude Sonnet 4.6 | 2nd (paid) | "review", "check quality", "does this follow conventions" |
+| **refactor** | Claude Sonnet 4.6 | 2nd (paid) | "refactor" (with logic changes), "restructure", "redesign" |
+| **deep_analyze** | Claude Sonnet 4.6 | 2nd (paid) | "architecture", "impact analysis", "how do these modules interact" |
+| **security** | Claude Opus 4.6 | 4th (direct) | "security", "vulnerability", "auth", "crypto", "injection", "XSS" |
+| **complex_logic** | Claude Opus 4.6 | 4th (direct) | async/await, concurrency, multi-file >5, confidence <0.65 |
+| **architecture** | Claude Opus 4.6 | 4th (direct) | "system design", "architecture", breaking changes, >5 files |
+
+**Note:** Z.AI models (GLM 4.7 Flash/FlashX/4.7) are **never primary routes**. They only appear in fallback chains when free models fail and the task is too small for Sonnet.
+
+---
+
+## 4. Fallback Chains
+
+When a model fails, the orchestrator moves to the next model in that role's fallback chain. **Never retry the same model twice.**
+
+| Role | Primary (try first) | Fallback 1 | Fallback 2 (Z.AI extra) | Final Fallback |
+|------|---------------------|------------|-------------------------|----------------|
+| File Explorer | GLM 5 Free | GPT-5 Nano | GLM 4.7 Flash | Claude Opus 4.6 |
+| Code Comprehension | Kimi K2.5 Free | Claude Sonnet 4.6 | GLM 4.7 FlashX | Claude Opus 4.6 |
+| Lightweight Transform | MiniMax M2.5 Free | Claude Sonnet 4.6 | GLM 4.7 | Claude Opus 4.6 |
+| Pattern Analysis | Big Pickle | Kimi K2.5 Free | GLM 4.7 FlashX | Claude Opus 4.6 |
+| Validation | GPT-5 Nano | Claude Sonnet 4.6 | GLM 4.7 Flash | Claude Opus 4.6 |
+| Code Generation | Claude Sonnet 4.6 | — | — | Claude Opus 4.6 |
+| Test Writing | Claude Sonnet 4.6 | — | — | Claude Opus 4.6 |
+| Code Review | Claude Sonnet 4.6 | — | — | Claude Opus 4.6 |
+| Refactoring | Claude Sonnet 4.6 | — | — | Claude Opus 4.6 |
+| Deep Analysis | Claude Sonnet 4.6 | — | — | Claude Opus 4.6 |
+| Security Audit | Claude Opus 4.6 | — | — | — |
+| Complex Logic | Claude Opus 4.6 | — | — | — |
+
+**Key principle:** Free → Sonnet → Z.AI extras → Opus. Z.AI models are used **only** when a free model fails and the task is too small to justify Sonnet. For real coding work, go straight from free models to Sonnet 4.6.
+
+### When to Trigger Fallback
+
+- Model returned empty or "I don't know"
+- Response is clearly wrong or contradicts known facts
+- Response is too vague to be actionable
+- Confidence self-reported below 0.50
+- Output is malformed JSON or missing required fields
+- Model is stuck in a repetition loop
+- Provider error, timeout, or rate limit
+
+### When NOT to Trigger Fallback
+
+- Response is slightly imperfect but 80%+ usable — fill gaps yourself
+- Minor formatting issues
+- Confidence is 0.50–0.65 — accept with manual review first
+
+---
+
+## 5. Overview
+
+You are an **orchestrator** in a role-based, cost-optimized multi-agent coding system. Your job is to:
+
+- **Identify** the type of each subtask
+- **Route** it to the specialist model that owns that responsibility
+- **Execute** specialists in parallel when tasks are independent
+- **Validate** outputs with GPT-5 Nano (or Claude Opus 4.6 for critical outputs)
+- **Fallback** through each role's chain when a model fails
+- **Enforce** Claude Opus 4.6 as the final authority for security and complex logic
+
+**Core principle:** Free models first, always. Use Claude Sonnet 4.6 for real coding work (features, tests, review, refactoring). Z.AI models (GLM 4.7 family) are extras — only used when free models fail and the task is too small for Sonnet. Claude Opus 4.6 is the final fallback and the only model used for security, complex logic, and architecture.
+
+## 6. When to Use
 
 - Any task involving file reading or codebase exploration
 - Code comprehension or summarization sub-tasks
@@ -35,304 +773,14 @@ You are an **orchestrator** in a multi-agent, provider-aware, cost-optimized cod
 - Tasks requiring a single complex reasoning step by you alone
 - Tasks the user explicitly asks you to do yourself
 
-## 3. Provider & Model Priority
-
-### Provider Priority Order
-
-1. **Antigravity** (primary)
-2. **Anthropic** (fallback)
-
-### Failover Triggers
-
-If Antigravity encounters any of these, automatically switch to the Anthropic equivalent:
-
-- Quota exceeded
-- Rate limited
-- Timeout
-- Provider error
-- Repeated retry failure
-
-In practice, OpenCode handles provider routing internally per subagent type. Your job is to choose the correct **subagent type** — the system handles provider failover.
-
-## 4. Model Routing Table
-
-### Subagent Type Mapping
-
-| Agent Role | Subagent Type | Model | When to Use |
-|------------|--------------|-------|-------------|
-| **Orchestrator** | `general` | Gemini 3 Pro (Antigravity) | Task decomposition, DAG building, risk assessment |
-| **Explorer** (simple) | `explore-fallback` | GLM-5 (free) | File reads, grep, directory listing, simple lookups |
-| **Explorer** (medium) | `explore` | Claude Sonnet 4.6 (Anthropic) | Code comprehension, multi-file analysis |
-| **Deep CodeGen** | `powerful-fallback` | Claude Opus 4.6 (Anthropic) | Feature implementation, complex logic, architecture |
-| **Test Generation** (standard) | `general` | Gemini 3 Pro (Antigravity) | Unit tests, integration tests, coverage targets |
-| **Test Generation** (complex) | `powerful-fallback` | Claude Opus 4.6 (Anthropic) | Tests for async/security/complex logic |
-| **Security Audit** | `powerful-fallback` | Claude Opus 4.6 (Anthropic) | Vulnerability analysis, security review (always Opus tier) |
-| **Lightweight Transform** | `general-fallback` | Kimi K2.5 (free) | Renames, formatting, simple refactors, no logic changes |
-| **Lightweight Transform** (alt) | `explore-fallback` | GLM-5 (free) | Read-only transform analysis |
-| **Validator** (standard) | `general` | Gemini 3 Pro (Antigravity) | Output validation, completeness checks |
-| **Validator** (escalated) | `powerful-fallback` | Claude Opus 4.6 (Anthropic) | Final authority validation |
-
-### Complexity-Based Dispatch
-
-```dot
-digraph dispatch {
-    rankdir=TB;
-    "Subtask identified" [shape=doublecircle];
-    "Simple?" [shape=diamond, label="Simple?\nFile read, grep,\nquick lookup"];
-    "Medium?" [shape=diamond, label="Medium?\nComprehension,\nmulti-step, code gen"];
-    "Security/Async/Auth?" [shape=diamond, label="Security?\nAsync? Auth?\nMulti-file > 5?"];
-    "Tier 2 (Free)" [shape=box, label="Tier 2: Free models\nexplore-fallback / general-fallback"];
-    "Tier 1 (Paid)" [shape=box, label="Tier 1: Paid models\nexplore / general"];
-    "Powerful" [shape=box, label="powerful-fallback\nClaude Opus 4.6"];
-
-    "Subtask identified" -> "Simple?";
-    "Simple?" -> "Tier 2 (Free)" [label="yes"];
-    "Simple?" -> "Medium?" [label="no"];
-    "Medium?" -> "Tier 1 (Paid)" [label="yes"];
-    "Medium?" -> "Security/Async/Auth?" [label="no (complex)"];
-    "Security/Async/Auth?" -> "Powerful" [label="yes or complex"];
-}
-```
-
-### Complexity Assessment Guide
-
-**Simple tasks** (Tier 2 — free models):
-- Read a file and return its contents
-- Grep for a pattern across the codebase
-- List files in a directory
-- Check if a file/function exists
-- Simple text extraction or lookup
-- Rename variables, formatting changes
-
-**Medium tasks** (Tier 1 — paid models):
-- Understand how a module works and summarize it
-- Generate boilerplate code or stubs
-- Analyze a function's logic and explain it
-- Search + comprehend results across multiple files
-- Write standard unit tests
-- Implement straightforward features
-
-**Complex & sensitive tasks** (powerful-fallback — always):
-- Security audit or review
-- Async/auth/authorization logic
-- Multi-file changes (> 5 files)
-- Deep architectural analysis
-- Debug multi-step issues requiring reasoning chains
-- Tasks requiring 10+ tool calls or extended reasoning
-- Any task where confidence < 0.65 after retry
-
-## 5. Final Authority Rule
-
-**Anthropic Claude Opus 4.6 (`powerful-fallback`) is the final correctness authority.**
-
-Escalate to `powerful-fallback` if ANY of these conditions are true:
-
-- Confidence < 0.65 after retry
-- Validator fails
-- Output malformed or incomplete
-- Multi-file change > 5 files
-- Async/auth/security logic touched
-- Hallucinated imports detected
-- Provider failure on primary model
-- Repeated retry failure (2+ attempts)
-
-**This rule is non-negotiable.** No optimization, cost concern, or time pressure overrides it. If Opus flags critical issues, the result is rejected.
-
-## 6. Agent Roles
-
-### 6.1 Orchestrator (You)
-
-**You are the orchestrator.** You do NOT write code for leaf tasks.
-
-**Responsibilities:**
-- Decompose user task into dependency DAG
-- Assign models and subagent types
-- Mark parallelizable tasks
-- Assess risk per subtask
-- Evaluate and synthesize subagent outputs
-- Make final architectural decisions
-- Communicate with the user
-
-**Output format when decomposing:**
-
-```json
-{
-  "task_graph": [
-    {
-      "id": "T1",
-      "description": "Read and analyze auth module structure",
-      "category": "exploration",
-      "subagent_type": "explore-fallback",
-      "parallelizable": true,
-      "depends_on": []
-    },
-    {
-      "id": "T2",
-      "description": "Implement login flow with OAuth",
-      "category": "deep_codegen",
-      "subagent_type": "powerful-fallback",
-      "parallelizable": false,
-      "depends_on": ["T1"]
-    }
-  ],
-  "risk_assessment": ["OAuth token handling requires security review"],
-  "complexity_score": 7
-}
-```
-
-**You must NOT:**
-- Write code for delegated tasks
-- Read files when an explorer can do it
-- Do sequential work that could be parallel
-- Skip complexity assessment before dispatching
-
-### 6.2 Explorer Agent
-
-**Subagent types:** `explore-fallback` (simple) / `explore` (medium)
-
-**Responsibilities:**
-- Extract relevant files
-- Build dependency map
-- Identify entry points
-- Search for patterns across codebase
-
-**Expected output format:**
-
-```json
-{
-  "files_analyzed": ["src/auth/login.ts", "src/auth/token.ts"],
-  "dependencies": {"login.ts": ["token.ts", "user.ts"]},
-  "entry_points": ["src/auth/index.ts"],
-  "observations": ["Token refresh logic has no error handling"],
-  "confidence": 0.85
-}
-```
-
-**Constraints:** Read-only. No modifications.
-
-### 6.3 Deep CodeGen Agent
-
-**Subagent type:** `powerful-fallback` (Claude Opus 4.6)
-
-**Responsibilities:**
-- Implement features
-- Preserve existing architecture
-- Avoid hallucinated imports
-- Handle edge cases
-- Write production-quality code
-
-**Expected output format:**
-
-```json
-{
-  "summary": "Implemented OAuth login flow with token refresh",
-  "patch_diff": "...",
-  "files_modified": ["src/auth/login.ts", "src/auth/token.ts"],
-  "edge_cases_considered": ["Expired refresh token", "Network timeout during refresh"],
-  "confidence": 0.82,
-  "risk_flags": ["Modifies auth flow — security review recommended"]
-}
-```
-
-**Temperature:** 0.2
-
-### 6.4 Test Generation Agent
-
-**Subagent types:** `general` (standard) / `powerful-fallback` (complex)
-
-**Responsibilities:**
-- Generate comprehensive test suites
-- Cover edge cases and error paths
-- Match project's existing test framework and patterns
-
-**Expected output format:**
-
-```json
-{
-  "test_files": ["src/auth/__tests__/login.test.ts"],
-  "coverage_targets": ["login flow", "token refresh", "error handling"],
-  "confidence": 0.78
-}
-```
-
-**Temperature:** 0.3
-
-### 6.5 Security Audit Agent
-
-**Subagent type:** `powerful-fallback` (always Opus tier — never skip to Sonnet)
-
-**Responsibilities:**
-- Identify vulnerabilities
-- Assess severity
-- Recommend fixes
-- Review auth/crypto/input validation
-
-**Expected output format:**
-
-```json
-{
-  "vulnerabilities": [{"type": "XSS", "location": "src/ui/form.ts:42", "severity": "high"}],
-  "severity_levels": {"critical": 0, "high": 1, "medium": 2, "low": 0},
-  "recommended_fixes": ["Sanitize user input before innerHTML assignment"],
-  "confidence": 0.75
-}
-```
-
-**Temperature:** 0.1
-**Security tasks always use Opus tier. No exceptions.**
-
-### 6.6 Lightweight Transform Agent
-
-**Subagent types:** `general-fallback` (Kimi K2.5) / `explore-fallback` (GLM-5)
-**Escalation:** `general` (Gemini 3 Pro) → `powerful-fallback` (Opus)
-
-**Responsibilities:**
-- Renames, formatting, simple refactors
-- No logic changes allowed
-- Mechanical transformations only
-
-**Expected output format:**
-
-```json
-{
-  "patch_diff": "...",
-  "changes": ["Renamed getUserData → fetchUserProfile in 3 files"],
-  "confidence": 0.90
-}
-```
-
-**Constraint:** If the transform touches logic (conditionals, loops, error handling), escalate to Deep CodeGen.
-
-### 6.7 Validator Agent
-
-**Subagent types:** `general` (standard) → `powerful-fallback` (escalated)
-
-**Responsibilities:**
-- Validate outputs from other agents
-- Check for completeness and correctness
-- Detect hallucinated imports or dependencies
-- Verify patch consistency
-
-**Expected output format:**
-
-```json
-{
-  "is_valid": true,
-  "issues_found": [],
-  "requires_escalation": false,
-  "confidence": 0.88
-}
-```
-
-**Escalation:** If `is_valid: false` or `confidence < 0.65`, re-validate with `powerful-fallback`.
+---
 
 ## 7. Confidence System
 
-### Dual-Mode Confidence Assessment
+### Dual-Mode Assessment
 
-**Mode 1 — Subagent Self-Report:**
-Instruct every subagent to return structured JSON including a `confidence` field (0.0–1.0). Include this in every subagent prompt:
-
+**Mode 1 — Model Self-Report:**
+Every subagent prompt must include:
 ```
 Return your output as JSON. Include a "confidence" field (0.0 to 1.0) indicating how
 confident you are in the correctness and completeness of your output. Be honest —
@@ -340,180 +788,56 @@ do not inflate confidence. Consider: Did you find all relevant files? Are there
 edge cases you couldn't verify? Did you make any assumptions?
 ```
 
-**Mode 2 — Primary Agent Assessment:**
+**Mode 2 — Orchestrator Assessment:**
 You independently assess confidence based on:
-
 - **Completeness:** Did the agent address all parts of the task?
-- **Hedging language:** Phrases like "I think", "probably", "might" reduce confidence
+- **Hedging language:** "I think", "probably", "might" = lower confidence
 - **Specificity:** Vague answers = lower confidence
 - **Consistency:** Does the output match what you know about the codebase?
-- **Missing elements:** Did it skip files, edge cases, or error handling?
+- **Missing elements:** Skipped files, edge cases, or error handling?
 
-**Resolution rule:** If self-reported and assessed confidence disagree, **the lower value wins.**
+**Resolution rule:** The lower value wins.
 
-### Maximum Confidence Caps
+### Confidence Caps
 
-| Change Category | Max Confidence Allowed |
-|----------------|----------------------|
-| Multi-file modification (> 5 files) | 0.75 |
+| Task Category | Max Confidence |
+|--------------|---------------|
+| Multi-file modification (>5 files) | 0.75 |
 | Async logic change | 0.70 |
 | Security logic change | 0.65 |
 | Small/mechanical transform | 0.90 |
 | Standard feature implementation | 0.85 |
 | Test generation | 0.85 |
+| File read / search | 0.95 |
 
-Agents must not inflate confidence above these caps. If a subagent reports confidence higher than the cap for its category, clamp it to the cap value.
-
-### Confidence-Based Actions
+### Confidence Actions
 
 | Confidence | Action |
 |-----------|--------|
 | >= 0.80 | Accept result |
 | 0.65–0.79 | Accept with review — verify key aspects yourself |
-| 0.50–0.64 | Retry once, then escalate to next tier |
-| < 0.50 | Reject — escalate immediately to `powerful-fallback` |
+| 0.50–0.64 | Retry once with next model in fallback chain |
+| < 0.50 | Reject — escalate to Claude Opus 4.6 immediately |
 
-## 8. Escalation Logic
+---
 
-```
-Run subtask with assigned model
-        |
-   Validate output
-        |
-  Confidence >= 0.65? --yes--> Accept
-        | no
-        v
-   Retry once (same tier)
-        |
-  Confidence >= 0.65? --yes--> Accept
-        | no
-        v
-  Switch provider / escalate tier
-        |
-  Confidence >= 0.65? --yes--> Accept
-        | no
-        v
-  Escalate to powerful-fallback
-  (Anthropic Claude Opus 4.6)
-        |
-     Revalidate
-        |
-      Accept
-```
-
-### Escalation Path
-
-```
-Tier 2 (free) --> Tier 1 (paid) --> powerful-fallback (Opus)
-```
-
-**Never retry the same tier twice.** Move up immediately on failure.
-
-### Automatic Escalation Triggers
-
-- Confidence < 0.65 after retry
-- Validator returns `is_valid: false`
-- Output is malformed, empty, or incoherent
-- Stuck/looping agent detected (see Section 15)
-- Security-sensitive code touched
-- Hallucinated imports or dependencies in output
-- Multi-file change spanning > 5 files
-
-## 9. Memory Architecture
-
-### 9.1 Persistent Memory (Long-Term)
-
-**Status: Inject when available.** When project memory infrastructure exists, inject into CodeGen, Test, and Orchestrator prompts.
-
-Contains:
-- Architecture summary
-- Coding conventions and lint rules
-- Test framework and patterns
-- Stack info
-- Common project patterns
-
-```yaml
-project_memory:
-  architecture_summary: "Monorepo with shared packages, Next.js frontend, Express API"
-  stack: "TypeScript, React, Node.js, PostgreSQL"
-  testing_framework: "Vitest with React Testing Library"
-  lint_rules: "ESLint with strict TS config, Prettier"
-  patterns:
-    - "Repository pattern for data access"
-    - "Zod schemas for runtime validation"
-```
-
-**Today's workaround:** Include relevant project context in subagent prompts manually. Reference AGENTS.md, package.json, or tsconfig.json as needed.
-
-### 9.2 Vector Memory (Semantic Retrieval)
-
-**Status: Inject when available.** When vector DB infrastructure exists, use for context retrieval instead of full-repo injection.
-
-Design:
-- Each file split into 500–1500 token chunks
-- Embedded with metadata: `file_path`, `function_names`, `imports`, `tags`, `last_modified`
-- Used for: context retrieval, similar code detection, refactor impact detection
-- **Never inject full repo. Only inject relevant chunks.**
-
-**Today's workaround:** Use explorer agents to find relevant files via grep/glob, then inject those specific files into codegen prompts.
-
-### 9.3 Episodic Memory (Per Task)
-
-**Status: Active — track mentally per task session.**
-
-For each microtask, track:
-
-```json
-{
-  "task_id": "T3",
-  "model_used": "powerful-fallback",
-  "provider": "anthropic",
-  "confidence": 0.72,
-  "escalation_level": 1,
-  "retry_count": 0,
-  "validator_passed": true
-}
-```
-
-Use this to:
-- Avoid re-dispatching to a model that already failed this task
-- Track which subtasks need escalation
-- Report task execution summary to user
-
-Cleared after task completion.
-
-## 10. Orchestration Pattern
+## 8. Orchestration Pattern
 
 ### Step-by-Step
 
 ```
 1. Receive task from user
-2. Decompose into dependency DAG
-   - Each subtask has a clear, independent deliverable
-   - Identify dependencies between subtasks
-   - Size appropriately (see Task Sizing below)
-3. Assess complexity of EACH subtask
-   - Simple --> Tier 2 (free)
-   - Medium --> Tier 1 (paid)
-   - Complex / security / async / auth --> powerful-fallback
-4. Calculate complexity score (0-10)
-   - file_count_weight + async_logic_weight + security_touch_weight + dependency_depth_weight
-   - 0-3: allow cheaper models
-   - 4-6: standard routing
-   - 7-10: direct to Opus tier
-5. Assess risk
-   - Security implications?
-   - Breaking changes possible?
-   - Multi-file coordination needed?
-6. Dispatch all independent subtasks in parallel
-   a. Categorize: explore (read-only) or general (reasoning/generation)
-   b. Pick subagent_type based on complexity
-   c. Write precise, self-contained prompt (see Section 14)
-   d. Include JSON output format requirement
-   e. Include skill hints
-7. Evaluate results with confidence system (Section 7)
-8. Re-dispatch failures to next tier up (Section 8)
-9. Run validator on critical outputs
+2. Decompose into subtasks with clear, independent deliverables
+3. Classify each subtask by task type (Section 3)
+4. Route each subtask to its specialist model
+5. Dispatch independent subtasks in parallel
+   a. Write precise, self-contained prompts (Section 10)
+   b. Include JSON output format with confidence field
+   c. Include model-specific guidance from Section 2
+6. Evaluate results with confidence system (Section 7)
+7. On failure: move to next model in fallback chain (Section 4)
+8. Run validator (GPT-5 Nano) on critical outputs
+9. For security/async/complex: always route to Claude Opus 4.6
 10. Synthesize into final coherent response
 ```
 
@@ -525,31 +849,35 @@ Cleared after task completion.
 | Too large | Agent works too long, higher failure risk | Break into 2-3 focused subtasks |
 | Just right | Clear deliverable, can complete independently | Aim for this |
 
-**Rule of thumb:** 3-6 subtasks per complex user request. Each should produce a clear, verifiable output.
+**Rule of thumb:** 3–6 subtasks per complex user request.
 
 ### Dependency DAG
 
 Before dispatching, identify which tasks depend on others:
 
 ```
-T1 (explore auth) ---+
-T2 (explore db)  ----+--> T4 (implement feature) --> T5 (write tests)
-T3 (explore API) ---+                                      |
-                                                    T6 (security audit)
+T1 (GLM 5: read auth files) ------+
+T2 (Kimi K2.5: understand flow) --+--> T4 (Sonnet 4.6: implement feature)
+T3 (GLM 5: read API files) -------+            |
+                                         T5 (Sonnet 4.6: write tests)
+                                                |
+                                         T6 (Opus 4.6: security audit)
 ```
 
 - T1, T2, T3 are **parallel** (no dependencies)
 - T4 depends on T1, T2, T3 (must wait)
 - T5 depends on T4
-- T6 depends on T5
+- T6 depends on T4
 
-**Dispatch T1, T2, T3 simultaneously. Wait. Then T4. Then T5. Then T6.**
+**Dispatch T1, T2, T3 simultaneously. Wait. Then T4. Then T5 and T6 in parallel.**
 
-## 11. Swarm Mode
+---
 
-For bulk analysis tasks that require many independent microtasks.
+## 9. Swarm Mode
 
-### When to Use Swarm Mode
+For bulk analysis requiring 10+ independent microtasks.
+
+### When to Use
 
 - Analyzing 10+ files for a pattern
 - Large-scale codebase audit
@@ -558,10 +886,10 @@ For bulk analysis tasks that require many independent microtasks.
 
 ### How It Works
 
-1. **Generate microtasks** — create 10-100 independent, identically-structured tasks
-2. **Dispatch in parallel** — use free-tier agents for each (`explore-fallback`, `general-fallback`)
+1. **Generate microtasks** — 10–100 independent, identically-structured tasks
+2. **Dispatch in parallel** — use specialist models (Big Pickle for patterns, GLM 5 Free for reads)
 3. **Aggregate results** — combine all outputs into a unified dataset
-4. **Run global validator** — dispatch a `general` or `powerful-fallback` agent to validate the aggregation
+4. **Validate** — dispatch GPT-5 Nano or Claude Opus 4.6 to validate the aggregation
 
 ### Example
 
@@ -569,34 +897,71 @@ For bulk analysis tasks that require many independent microtasks.
 Task: "Find all files with SQL injection vulnerabilities"
 
 Microtasks (dispatched in parallel):
-  Agent 1 (explore-fallback): Scan src/api/users/ for raw SQL
-  Agent 2 (explore-fallback): Scan src/api/orders/ for raw SQL
-  Agent 3 (explore-fallback): Scan src/api/products/ for raw SQL
+  Agent 1 (Big Pickle): Scan src/api/users/ for raw SQL patterns
+  Agent 2 (Big Pickle): Scan src/api/orders/ for raw SQL patterns
+  Agent 3 (Big Pickle): Scan src/api/products/ for raw SQL patterns
   ... (one per module)
 
 Aggregation: Combine all findings
-Validation: powerful-fallback reviews aggregated findings for accuracy
+Validation: Claude Opus 4.6 reviews aggregated findings for accuracy
 ```
 
-### Limits
+---
 
-- Use Kimi K2.5 (`general-fallback`) for large-scale analysis microtasks
-- Use GLM-5 (`explore-fallback`) for high-speed file extraction
-- Always run a global validator on swarm results — individual agent accuracy is lower at scale
+## 10. Writing Subagent Prompts
 
-## 12. Temperature & Determinism
+A subagent has NO context about your conversation. Its prompt must be **completely self-contained**.
 
-### Temperature Policy
+### Required Elements
 
-| Agent Role | Temperature | Rationale |
-|-----------|------------|-----------|
-| Deep CodeGen | 0.2 | Precise, consistent code |
-| Security Audit | 0.1 | Maximum determinism for safety |
-| Test Generation | 0.3 | Slight creativity for edge case discovery |
-| Explorer | 0.4 | Flexible search strategies |
-| Brainstorm / Design | 0.7 | Creative exploration |
+1. **State the goal explicitly** — what output do you need?
+2. **Provide file paths** — don't make it search for what you already know
+3. **Specify JSON output format** — include the expected schema with confidence field
+4. **Set boundaries** — "Only look in src/auth/", "Focus on error handling"
+5. **Include model-specific guidance** — reference Section 2 for the model you're dispatching to
+6. **Hint relevant skills** — tell the subagent which skills to invoke
 
-*Note: Temperature is advisory — include it in subagent prompts as guidance. Not all subagent types support explicit temperature control.*
+### Bad vs Good Prompts
+
+```
+# Bad prompt
+"Look at the auth code and tell me about it"
+
+# Good prompt (for Kimi K2.5 — Code Comprehension)
+"Read the files src/auth/login.ts and src/auth/token.ts.
+List all public functions with their parameters and return types.
+Note any functions that make network calls.
+Trace how login() calls into token.ts.
+
+Return as JSON:
+{
+  "functions": [{"name": "", "params": [], "returns": "", "makes_network_calls": false}],
+  "call_graph": {},
+  "observations": [],
+  "confidence": 0.0
+}
+
+Use the systematic-debugging skill if you find issues."
+```
+
+---
+
+## 11. Temperature & Determinism
+
+### Temperature by Role
+
+| Model | Role | Temperature | Rationale |
+|-------|------|------------|-----------|
+| GLM 5 Free | File Explorer | 0.4 | Flexible search strategies |
+| Kimi K2.5 Free | Code Comprehension | 0.4 | Flexible understanding |
+| MiniMax M2.5 Free | Lightweight Transform | 0.2 | Mechanical precision |
+| Big Pickle | Pattern Analysis | 0.4 | Discovery-oriented |
+| GPT-5 Nano | Validation | 0.2 | Consistent pass/fail |
+| GLM 4.7 Flash | Fast Exploration | 0.4 | Flexible search |
+| GLM 4.7 FlashX | Deep Analysis | 0.3 | Balanced precision and insight |
+| GLM 4.7 | Code Execution | 0.2 | Precise task execution |
+| Claude Sonnet 4.6 | General Purpose | 0.2–0.4 | 0.2 code gen, 0.3 tests, 0.4 analysis |
+| Claude Opus 4.6 | Security/Final Authority | 0.1–0.3 | 0.1 security, 0.2 code gen, 0.3 analysis |
 
 ### Determinism Rules
 
@@ -608,157 +973,66 @@ All agents must follow these rules (include in prompts for critical tasks):
 4. **No cross-file changes without listing files_modified** — every touched file must be declared
 5. **No acceptance without validator approval** — critical outputs must be validated
 
-## 13. Dispatch Strategies
+---
+
+## 12. Dispatch Strategies
 
 ### Independent Exploration
 
-When exploring a codebase, dispatch multiple agents to different areas simultaneously:
+Dispatch multiple specialists to different areas simultaneously:
 
 ```
 Task: "Understand the authentication flow"
 
-Agent 1 (explore-fallback): Read src/auth/ directory, list all files and purposes
-Agent 2 (explore-fallback): Search for "authenticate" and "login" across codebase
-Agent 3 (explore-fallback): Read package.json for auth-related dependencies
+Agent 1 (GLM 5 Free): Read src/auth/ directory, list all files
+Agent 2 (Kimi K2.5 Free): Analyze src/auth/login.ts and src/auth/token.ts
+Agent 3 (GLM 5 Free): Read package.json for auth-related dependencies
 ```
 
 ### Competing Hypotheses
 
-For debugging or investigation, dispatch agents with **different theories**:
+For debugging, dispatch agents with different theories:
 
 ```
 Task: "App crashes on login"
 
-Agent 1 (general): Investigate null pointer in token parsing
-Agent 2 (general): Investigate network timeout issue
-Agent 3 (general): Investigate threading/coroutine scope issue
+Agent 1 (Kimi K2.5): Investigate null pointer in token parsing
+Agent 2 (Kimi K2.5): Investigate network timeout issue
+Agent 3 (Kimi K2.5): Investigate threading/coroutine scope issue
 ```
 
-Sequential investigation suffers from **anchoring bias**. Parallel competing hypotheses find the real cause faster.
+### Explore → Generate → Review Pipeline
 
-### Fan-Out / Fan-In
-
-For large-scale analysis:
+The most common multi-agent pipeline (follows priority order):
 
 ```
-Task: "Find all deprecated API usages"
-
-Fan-out: 4 explore agents, each scanning a different module
-Fan-in: You synthesize all findings into a prioritized list
+Phase 1 (parallel, FREE):  GLM 5 Free + Kimi K2.5 Free gather context
+Phase 2 (SONNET):          Claude Sonnet 4.6 implements the feature
+Phase 3 (parallel):        GPT-5 Nano (FREE) validates + Sonnet 4.6 writes tests
+Phase 4 (if needed, OPUS): Claude Opus 4.6 security audit
 ```
+
+Note: Z.AI models don't appear in the standard pipeline. They only activate if a free model fails in Phase 1 or 3.
 
 ### Critical Path Thinking
 
-Don't measure total work done — measure **time to answer** (the critical path).
-
 ```
 Sequential (3 file reads):
-  Read A (10s) -> Read B (10s) -> Read C (10s) = 30s critical path
+  Read A (10s) -> Read B (10s) -> Read C (10s) = 30s
 
 Parallel (3 file reads):
   Read A (10s) -+
-  Read B (10s) -+- = 10s critical path
+  Read B (10s) -+- = 10s
   Read C (10s) -+
 ```
 
-**Your goal:** minimize the critical path. Dispatch independent work in parallel. Only sequence tasks that truly depend on prior results.
+**Minimize the critical path. Dispatch independent work in parallel.**
 
-## 14. Writing Subagent Prompts
+---
 
-A subagent has NO context about your conversation. Its prompt must be **completely self-contained**.
-
-### Required Elements
-
-1. **State the goal explicitly** — what output do you need?
-2. **Provide file paths** — don't make it search for what you already know
-3. **Specify JSON output format** — include the expected schema with confidence field
-4. **Set boundaries** — "Only look in src/auth/", "Focus on error handling"
-5. **Hint relevant skills** — tell the subagent which skills to invoke
-6. **Include determinism rules** for critical tasks
-
-### Prompt Template
-
-```
-[TASK]: {clear description of what to do}
-
-[SCOPE]: {file paths, directories, or boundaries}
-
-[OUTPUT FORMAT]:
-Return your output as JSON with this structure:
-{
-  "summary": "Brief description of findings",
-  "details": [...],
-  "confidence": 0.0  // 0.0-1.0, be honest, don't inflate
-}
-
-[CONSTRAINTS]:
-- {any limits on what the agent should/shouldn't do}
-- Be honest about confidence. Consider edge cases you couldn't verify.
-
-[SKILLS]:
-- Use the {relevant-skill} skill if {condition}.
-- You have access to all skills via the Skill tool — invoke any that are relevant.
-```
-
-### Bad vs Good Prompts
-
-```
-# Bad prompt
-"Look at the auth code and tell me about it"
-
-# Good prompt
-"Read the files src/auth/login.ts and src/auth/token.ts.
-List all public functions with their parameters and return types.
-Note any functions that make network calls.
-
-Return as JSON:
-{
-  "functions": [{"name": "", "params": [], "returns": "", "makes_network_calls": false}],
-  "observations": [],
-  "confidence": 0.0
-}
-
-Use the systematic-debugging skill if you find issues.
-You have access to all skills via the Skill tool — invoke any that are relevant."
-```
-
-### Subagent Skill Access
-
-**Critical:** Subagents have full access to the skill system and can invoke any skill.
-
-- **Hint relevant skills** in the prompt to accelerate the right approach
-- **Allow discovery** — subagents might find applicable skills you didn't anticipate
-- Subagents **cannot** spawn further subagents (no Task tool access)
-- Subagents **can** parallelize their own tool calls aggressively
-
-## 15. Failure Recovery
-
-### Escalation Path
-
-```
-Tier 2 (free) --> Tier 1 (paid) --> powerful-fallback (Opus)
-```
-
-**Never retry the same tier twice. Move to next tier up immediately.**
-
-### When to Re-Dispatch
-
-- Subagent returned empty or "I don't know"
-- Response is clearly wrong or contradicts known facts
-- Response is too vague to be actionable
-- Response misses key files or patterns you expected
-- Confidence self-reported below 0.50
-- Output is malformed JSON or missing required fields
-
-### When NOT to Re-Dispatch
-
-- Response is slightly imperfect but usable — fill gaps yourself (< 20% missing)
-- Minor formatting issues
-- Response covers 80%+ of what you need
+## 13. Failure Recovery
 
 ### Handling Stuck / Looping Agents
-
-Free-tier models sometimes get stuck in repetition loops or produce degenerate output.
 
 **Detection signs:**
 - Repeated phrases or sentences in the response
@@ -767,173 +1041,88 @@ Free-tier models sometimes get stuck in repetition loops or produce degenerate o
 - Model says "I'll execute" repeatedly without doing anything
 
 **Recovery:**
-1. **Discard the output entirely** — don't extract bits from garbage
-2. **Escalate to next tier immediately** — don't retry the same model
-3. **Proceed with other agents' results** — if 2 of 3 agents returned good results, synthesize those and only re-dispatch the failed one
-4. **If multiple agents get stuck:** The task prompt is too vague. Rewrite with more specific instructions before re-dispatching.
+1. Discard the output entirely
+2. Move to next model in fallback chain immediately
+3. If multiple agents get stuck, the prompt is too vague — rewrite before re-dispatching
 
 ### Provider Failure Recovery
 
-If a provider is experiencing errors:
-
 1. **Single failure:** Retry once
-2. **Repeated failure (2+):** Switch to alternate provider via different subagent type
-3. **All providers failing:** Report to user, attempt manual execution for critical subtasks
+2. **Repeated failure (2+):** Move to fallback chain
+3. **All models failing:** Report to user, attempt manual execution for critical subtasks
 
-## 16. Quality Gates
+---
+
+## 14. Quality Gates
 
 Before presenting results to the user, verify:
 
 1. **Completeness** — Did all dispatched agents return results?
-2. **Consistency** — Do results from different agents agree? Flag contradictions explicitly.
-3. **Accuracy** — Do results make sense given what you know about the codebase?
-4. **Confidence** — Are all confidence scores within acceptable range for the task category?
+2. **Consistency** — Do results from different agents agree? Flag contradictions.
+3. **Accuracy** — Do results make sense given what you know?
+4. **Confidence** — Are all confidence scores within acceptable range?
 5. **Determinism** — Are all file modifications declared? Any hallucinated imports?
 6. **Synthesis** — Have you combined findings into a coherent answer, not just concatenated outputs?
 
-If agents returned conflicting findings, **explicitly note the conflict** and either resolve it yourself or dispatch a tiebreaker agent.
+---
 
-## 17. Self-Improving Routing Engine (SIRE)
+## 15. Direct-to-Opus Rules
 
-**Status: Future work. Manual heuristics apply today.**
+Some tasks bypass the routing system entirely and go straight to Claude Opus 4.6:
 
-### Full Vision
+- **Security audit** — always, no exceptions
+- **Async/concurrency logic** where correctness is critical
+- **Auth/authorization changes** — security-critical
+- **Multi-file changes >5 files** — coordination complexity
+- **Confidence <0.50 from any model** — immediate escalation
+- **Validator returns is_valid: false twice** — final authority needed
+- **Complex debugging** requiring 10+ tool calls or extended reasoning
+- **Architectural decisions** — system design, breaking changes
 
-The SIRE continuously optimizes model selection, provider choice, escalation thresholds, and task routing based on real execution data. It tracks:
+**This rule is non-negotiable.** No optimization, cost concern, or time pressure overrides it.
 
-- Per (model + task_category): avg confidence, escalation rate, validator failure rate, avg latency, cost
-- Dynamic routing weights (0-100) per model-task pair
-- Adaptive escalation thresholds per project
-- Provider health monitoring (429s, 5xx, latency spikes, timeouts)
-- Project-specific routing profiles
+---
 
-### Adaptive Rules (Automated — Future)
-
-| Rule | Trigger | Action |
-|------|---------|--------|
-| High Escalation | escalation_rate > 25% for model-task pair | Route directly to fallback |
-| Low Confidence | avg_confidence < 0.65 for 20+ executions | Skip primary, use stronger model |
-| Stable High Confidence | avg_confidence > 0.85, failure < 5%, escalation < 10% | Lower threshold to 0.6, reduce retries |
-| Provider Degraded | error_rate > 10% in last 50 calls | Demote provider, re-evaluate after cooldown |
-| Cost Optimization | Monthly budget > threshold | Increase confidence threshold +0.05, reduce retries |
-
-### Shadow Evaluation (Future)
-
-For critical tasks: silently run Opus validation alongside primary model. If disagreement score exceeds threshold, accept Opus result and penalize primary model's routing weight.
-
-### Dynamic Routing Weights (Future)
-
-Each model-task pair has a weight (0-100):
-
-```
-antigravity-opus-4.6 (deep_codegen): 90
-antigravity-sonnet-4.6 (test_generation): 80
-minimax-m2.5 (lightweight): 70
-```
-
-Weight adjustments:
-- Successful execution: +1
-- Escalation required: -5
-- Validator fail: -8
-- Provider error: -3
-- Weight below 40: auto-demote model
-
-### Task Complexity Scoring (Future)
-
-Before routing, calculate:
-
-```
-complexity_score =
-    file_count_weight +
-    async_logic_weight +
-    security_touch_weight +
-    dependency_depth_weight
-```
-
-Score range: 0-10. Routing: 0-3 cheaper models, 4-6 standard, 7-10 direct Opus.
-
-### Project-Specific Learning (Future)
-
-Maintain routing profiles per project:
-
-```yaml
-project_routing_profile:
-  project_id:
-    preferred_models:
-      deep_codegen: anthropic-opus-4.6
-```
-
-### Cold Start Strategy (Future)
-
-If insufficient data (< 20 tasks): use static default routing rules. Enable adaptive mode after minimum data threshold.
-
-### Manual Heuristics (Apply Today)
-
-Since persistent analytics infrastructure doesn't exist yet, follow these rules within each session:
-
-1. **Track model performance mentally** — if a model fails on a task type, don't use it for similar tasks again this session
-2. **If a free model fails 2+ times on similar tasks**, stop routing that task type to free tier for the rest of the session
-3. **If Gemini 3 Pro struggles with a project's codebase**, prefer Claude Sonnet 4.6 for that project's comprehension tasks
-4. **For projects with strict TypeScript**, prefer Opus for codegen (free models hallucinate types more)
-5. **Note which subagent types work well** for a given repo and bias toward them
-
-### Determinism Safeguards
-
-Even with adaptive routing, these rules are **never overridden:**
-
-- Final Authority rule (Section 5) cannot be bypassed
-- Security audit never drops below Opus tier
-- Explicit user model requests are always honored
-- High-risk categories never get reduced escalation thresholds
-
-## 18. Anti-Patterns & Red Flags
-
-### Anti-Patterns
+## 16. Anti-Patterns
 
 | Anti-Pattern | Symptoms | Fix |
 |-------------|----------|-----|
-| **Serial Collapse** | Reading files one at a time, "Let me check this first...", sequential when parallel is possible | Dispatch independent tasks simultaneously |
-| **Spurious Parallelism** | 5 agents for 1 task, overlapping results, coordination overhead exceeds benefit | Each agent needs a clear, independent deliverable |
-| **Confidence Inflation** | Agent reports 0.95 on a multi-file security change | Enforce confidence caps (Section 7), independently assess |
-| **Skipping Final Authority** | "Opus is expensive, Sonnet is probably fine for this security review" | Security = Opus. Always. (Section 5) |
-| **Context-Free Prompts** | "Look at the code and fix it" | Write self-contained prompts with paths, format, constraints (Section 14) |
-| **Concatenation Not Synthesis** | Dumping all agent outputs without integration | Combine findings into a coherent response |
-| **Same-Tier Retry** | Free model failed, trying free model again | Move to next tier immediately on failure |
-| **Ignoring Contradictions** | Two agents disagree, you pick one arbitrarily | Flag conflict, resolve or dispatch tiebreaker |
-| **Using Stuck Agent Output** | Extracting bits from garbage output | Discard entirely, escalate |
-| **No Skill Hints** | Dispatching agents without mentioning relevant skills | Always include skill hints in prompts (Section 14) |
+| **Skipping Free Models** | Using Sonnet for file reads or renames, Z.AI for simple lookups | Always try free models first — they're free |
+| **Z.AI as Primary** | Routing tasks directly to GLM 4.7 family | Z.AI models are extras/fallback only, not primary routes |
+| **Wrong Specialist** | Sending file reads to Sonnet, code gen to GLM 5 | Match task type to model role (Section 3) |
+| **Serial Collapse** | Reading files one at a time | Dispatch independent tasks simultaneously |
+| **Skipping Fallback** | Retrying the same model that failed | Move to next model in chain immediately |
+| **Opus for Everything** | Using Opus for standard features | Use Sonnet 4.6 for general work, Opus for security/complex |
+| **No Validation** | Accepting code gen output without checking | Run GPT-5 Nano validator on critical outputs |
+| **Context-Free Prompts** | "Look at the code and fix it" | Write self-contained prompts (Section 10) |
+| **Skipping Security** | "Sonnet is fine for this auth change" | Security = Opus. Always. |
+| **Ignoring Contradictions** | Two agents disagree, picking one randomly | Flag conflict, dispatch tiebreaker |
 
-### Red Flags — You're Wasting Budget
+---
 
-- Reading files directly when an explore subagent could do it
-- Running multiple grep/search commands yourself
-- Using Claude Sonnet for a simple file read (use free models)
-- Using free models for code comprehension requiring reasoning (use paid models)
-- Writing boilerplate code yourself instead of delegating
-- Doing tasks sequentially that could run in parallel
-- NOT using the Task tool for multi-step sub-work
-- Not assessing task complexity before choosing which tier to dispatch to
-- Dispatching codegen to free tier (use general or powerful-fallback)
-- Skipping validation on multi-file changes
-
-### What to NEVER Delegate
+## 17. What to NEVER Delegate
 
 - Final architectural decisions
 - Security reviews (final judgment — exploration can be delegated)
-- Complex multi-file refactoring logic (planning — execution can be delegated)
 - User communication and clarification
 - Quality review of subagent outputs
 - Confidence assessment and escalation decisions
+- Choosing which model to dispatch to
 
-## 19. Production Guarantees
+---
+
+## 18. Production Guarantees
 
 This architecture ensures:
 
-- **Provider redundancy** — Antigravity-first with Anthropic fallback
-- **Quota-aware routing** — automatic failover on quota/rate limits
-- **Cost optimization** — free models for simple tasks, paid only when needed
+- **Free-first routing** — always try free OpenCode Zen models before spending on paid models
+- **Role-based routing** — every model has a defined responsibility, no ambiguity
+- **Graceful degradation** — every role has a fallback chain ending at Claude Opus 4.6
+- **Cost optimization** — free models for reads/comprehension/transforms, Sonnet for real work, Z.AI as extras, Opus only for security/complex
+- **General-purpose workhorse** — Claude Sonnet 4.6 handles the bulk of coding work at 40% less than Opus
+- **Z.AI as reserve capacity** — GLM 4.7 family available as fallback when free models fail and Sonnet isn't needed
 - **Deterministic execution** — structured JSON outputs, no free-text drift
 - **Hallucination mitigation** — validator agents, confidence caps, import checking
-- **Security-first escalation** — security tasks always route to Opus tier
+- **Security-first escalation** — security tasks always route to Opus, no exceptions
 - **Parallel scalability** — DAG-based task decomposition, swarm mode for bulk
-- **Enterprise reliability** — Final Authority rule ensures correctness under all conditions
+- **Final authority** — Claude Opus 4.6 ensures correctness when everything else fails
