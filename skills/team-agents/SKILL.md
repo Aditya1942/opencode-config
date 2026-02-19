@@ -7,7 +7,7 @@ description: "Use when receiving any task that involves sub-tasks like file read
 
 ## 1. Available Models
 
-The orchestrator has access to the following models. Each model has a dedicated role and a specific fallback chain. The final fallback for every role is **Claude Opus 4.6**.
+The orchestrator uses the currently selected model for planning and orchestration tasks. It has access to the following models for dispatching subtasks. Each model has a dedicated role and a specific fallback chain. The final fallback for every role is **Claude Opus 4.6**.
 
 ### Priority Order
 
@@ -630,7 +630,7 @@ These are the actual `subagent_type` values to use when dispatching via the Task
 | Output Validator | `validator` | opencode/gpt-5-nano | opencode.json |
 | Code Executor | `executor` | zai-coding-plan/glm-4.7 | opencode.json |
 | Code Reviewer | `code-reviewer` | zai-coding-plan/glm-4.7 | opencode.json |
-| Final Authority | (orchestrator itself) | anthropic/claude-opus-4-6 | opencode.json |
+| Final Authority | (orchestrator routes to Opus for security/complex) | anthropic/claude-opus-4-6 | per team-agents rules |
 
 > **Important:** Always use the `subagent_type` column value when dispatching tasks. These map directly to agent definitions in `opencode.json`. If you add or rename agents, update this table.
 

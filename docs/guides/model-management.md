@@ -32,7 +32,7 @@ opencode.json           Task tool               Agent execution
 | Agent | Model | Provider | Tier | Mode | Purpose |
 |-------|-------|----------|------|------|---------|
 | `build` | (user-selected) | — | — | primary | Default agent, delegates complex tasks |
-| `orchestrator` | `anthropic/claude-opus-4-6` | Anthropic | T2 | primary (plan only) | Decomposes tasks, plans, dispatches |
+| `orchestrator` | (user-selected) | — | — | primary (plan only) | Decomposes tasks, plans, dispatches |
 | `explore` | `opencode/glm-5-free` | OpenCode Zen | T0 (free) | subagent | File reads, grep, directory listing |
 | `general` | `opencode/kimi-k2.5-free` | OpenCode Zen | T0 (free) | subagent | Code comprehension, multi-file analysis |
 | `transform` | `opencode/minimax-m2.5-free` | OpenCode Zen | T0 (free) | subagent (hidden) | Renames, formatting, simple refactors |

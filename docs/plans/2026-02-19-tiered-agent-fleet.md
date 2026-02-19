@@ -169,7 +169,7 @@ Replace the existing 4-row table with a 7-row table reflecting all agents:
 | Agent              | Model                         | Role                                    | Mode      |
 |--------------------|-------------------------------|-----------------------------------------|-----------|
 | `build` (primary)  | (user-selected)               | Default primary agent, delegates complex tasks to orchestrator | primary |
-| `orchestrator`     | Claude Opus 4.6 (Anthropic)   | Planning orchestrator — decomposes, plans, dispatches | primary (plan only) |
+| `orchestrator`     | (user-selected)               | Planning orchestrator — decomposes, plans, dispatches | primary (plan only) |
 | `explore`          | GLM 5 Free (OpenCode Zen)     | File reads, grep, directory listing      | subagent  |
 | `general`          | Kimi K2.5 Free (OpenCode Zen) | Code comprehension, multi-file analysis  | subagent  |
 | `transform`        | MiniMax M2.5 Free (OpenCode Zen) | Renames, formatting, simple refactors | subagent (hidden) |
@@ -204,7 +204,7 @@ Add a new subsection at the top of Section 3 that maps abstract roles to actual 
 | Output Validator | `validator` | opencode/gpt-5-nano |
 | Code Executor | `executor` | zai/glm-4.7 |
 | Code Reviewer | `code-reviewer` | zai/glm-4.7 |
-| Final Authority | (orchestrator itself) | anthropic/claude-opus-4-6 |
+| Final Authority | (orchestrator routes to Opus for security/complex) | anthropic/claude-opus-4-6 |
 
 When dispatching via the Task tool, always use the `subagent_type` column value.
 ```

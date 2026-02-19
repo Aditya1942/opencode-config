@@ -33,7 +33,7 @@ A multi-agent system with an intelligent orchestrator that routes tasks to optim
 | Agent | Model | Mode | Role |
 |-------|-------|------|------|
 | `build` (primary) | User-selected | build/plan | Default agent, delegates complex tasks to orchestrator |
-| `orchestrator` | Claude Opus 4.6 (Anthropic) | build/plan | Multi-agent coding orchestrator — decomposes tasks into microtasks, routes to optimal models, executes parallel agents, confidence-based escalation |
+| `orchestrator` | User-selected | build/plan | Multi-agent coding orchestrator — decomposes tasks into microtasks, routes to optimal models, executes parallel agents, confidence-based escalation |
 | `code-reviewer` | Gemini 3 Pro (Antigravity) | subagent | Post-implementation review |
 
 The `orchestrator` agent owns all model routing decisions. It decomposes tasks into a dependency DAG, assesses complexity, dispatches to the right model tier (free → paid → Opus), validates with dual-mode confidence scoring, and enforces final correctness via Anthropic Claude Opus 4.6. See the `team-agents` skill for the full 19-section architecture spec.

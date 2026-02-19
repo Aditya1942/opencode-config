@@ -54,7 +54,7 @@ There are no test commands. If you add tests, use Bun's built-in test runner (`b
 | Agent              | Model                         | Role                                    | Mode      |
 |--------------------|-------------------------------|-----------------------------------------|-----------|
 | `build` (primary)  | (user-selected)               | Default primary agent, delegates complex tasks to orchestrator | primary |
-| `orchestrator`     | Claude Opus 4.6 (Anthropic)   | Planning orchestrator — decomposes, plans, dispatches | primary (plan only) |
+| `orchestrator`     | (user-selected)               | Planning orchestrator — decomposes, plans, dispatches | primary (plan only) |
 | `explore`          | GLM 5 Free (OpenCode Zen)     | File reads, grep, directory listing      | subagent  |
 | `general`          | Kimi K2.5 Free (OpenCode Zen) | Code comprehension, multi-file analysis  | subagent  |
 | `transform`        | MiniMax M2.5 Free (OpenCode Zen) | Renames, formatting, simple refactors | subagent (hidden) |
@@ -71,7 +71,7 @@ The `orchestrator` agent is the central intelligence of the multi-agent system. 
 - **Presents the plan to the user and waits for explicit confirmation**
 - After confirmation, dispatches `executor-sonnet` (primary) or `executor` (fallback) subagents in build mode
 - Validates outputs with dual-mode confidence scoring (self-report + independent assessment)
-- Enforces final correctness via Anthropic Claude Opus 4.6 (Final Authority Rule)
+- Routes security and complex tasks to Claude Opus 4.6 via the Final Authority Rule (see team-agents skill)
 - Operates in **plan mode only** — never writes code or edits files directly
 
 ### 3-Tier Model Routing

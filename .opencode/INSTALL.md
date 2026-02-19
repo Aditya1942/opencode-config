@@ -218,7 +218,7 @@ Or use the built-in command inside OpenCode:
 ### Agents Not Working
 
 1. Verify `opencode.json` has the `agent` section with `build`, `orchestrator`, and `code-reviewer` defined
-2. Check that the orchestrator model (`anthropic/claude-opus-4-6`) is accessible
+2. Check that the orchestrator model (uses currently selected session model) is accessible
 3. Antigravity models require auth — ensure `antigravity-accounts.json` is configured
 
 ### Tool Mapping (for Skills Written for Claude Code)
