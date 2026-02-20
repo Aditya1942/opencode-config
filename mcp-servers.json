@@ -1,0 +1,178 @@
+{
+  "$schema": "https://opencode.ai/mcp-servers.json",
+  "description": "Model Context Protocol (MCP) servers configuration for OpenCode AI assistant",
+  "mcpServers": {
+    "everything": {
+      "name": "Everything MCP Server",
+      "type": "local",
+      "description": "Comprehensive reference server demonstrating all MCP capabilities - tools, resources, and prompts. Use for testing MCP clients and learning.",
+      "category": "Reference / Testing",
+      "language": "TypeScript",
+      "install": "npm install -g @modelcontextprotocol/server-everything",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-everything"],
+      "features": [
+        "echo tool",
+        "add numbers",
+        "long-running operations with progress",
+        "environment variables access",
+        "LLM sampling",
+        "image handling",
+        "resource references",
+        "user input elicitation",
+        "structured content",
+        "zip compression",
+        "roots protocol"
+      ],
+      "repository": "https://github.com/modelcontextprotocol/servers"
+    },
+    "filesystem": {
+      "name": "Filesystem MCP Server",
+      "type": "local",
+      "description": "Secure file system operations with configurable directory access and permissions. Read, write, search, and manage files safely.",
+      "category": "File System",
+      "language": "TypeScript",
+      "install": "npm install -g @modelcontextprotocol/server-filesystem",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem"],
+      "args": ["--allowed-directories", "/Users/aditya"],
+      "features": [
+        "read files",
+        "write files",
+        "create directories",
+        "search files",
+        "list directories",
+        "path validation",
+        "access control via roots"
+      ],
+      "repository": "https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem"
+    },
+    "memory": {
+      "name": "Memory MCP Server",
+      "type": "local",
+      "description": "Knowledge graph-based persistent memory with entity and observation tracking. Build long-term context across sessions.",
+      "category": "Memory / Context",
+      "language": "TypeScript",
+      "install": "npm install -g @modelcontextprotocol/server-memory",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-memory"],
+      "features": [
+        "create entities",
+        "add observations",
+        "build knowledge graphs",
+        "query relationships",
+        "persistent storage",
+        "cross-session memory"
+      ],
+      "repository": "https://github.com/modelcontextprotocol/servers/tree/main/src/memory"
+    },
+    "sequential-thinking": {
+      "name": "Sequential Thinking MCP Server",
+      "type": "local",
+      "description": "Reflective problem-solving with step-by-step reasoning, revision, and branching. Break down complex problems.",
+      "category": "Reasoning",
+      "language": "TypeScript",
+      "install": "npm install -g @modelcontextprotocol/server-sequential-thinking",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-sequential-thinking"],
+      "environment": {
+        "DISABLE_THOUGHT_LOGGING": "false"
+      },
+      "features": [
+        "step-by-step reasoning",
+        "thought revision",
+        "alternative branching",
+        "dynamic step adjustment",
+        "hypothesis verification",
+        "complex problem decomposition"
+      ],
+      "repository": "https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking"
+    },
+    "fetch": {
+      "name": "Fetch MCP Server",
+      "type": "local",
+      "description": "Web content retrieval with HTML to markdown conversion. Fetch URLs, extract content, and handle pagination.",
+      "category": "Web / Search",
+      "language": "Python",
+      "install": "pip install mcp-server-fetch or uvx mcp-server-fetch",
+      "command": ["uvx", "mcp-server-fetch"],
+      "features": [
+        "fetch web pages",
+        "HTML to markdown conversion",
+        "content truncation with pagination",
+        "raw content option",
+        "robots.txt respect",
+        "custom user-agent",
+        "proxy support"
+      ],
+      "repository": "https://github.com/modelcontextprotocol/servers/tree/main/src/fetch"
+    },
+    "git": {
+      "name": "Git MCP Server",
+      "type": "local",
+      "description": "Git repository operations - clone, status, commits, branches, PRs, and more. Full version control access.",
+      "category": "DevOps / Version Control",
+      "language": "Python",
+      "install": "pip install mcp-server-git or uvx mcp-server-git",
+      "command": ["uvx", "mcp-server-git"],
+      "features": [
+        "clone repositories",
+        "git status",
+        "create commits",
+        "manage branches",
+        "pull requests",
+        "view history",
+        "merge operations"
+      ],
+      "repository": "https://github.com/modelcontextprotocol/servers/tree/main/src/git"
+    },
+    "time": {
+      "name": "Time MCP Server",
+      "type": "local",
+      "description": "Time data management with timezone conversion and scheduling. Handle temporal data across regions.",
+      "category": "Utilities",
+      "language": "Python",
+      "install": "pip install mcp-server-time or uvx mcp-server-time",
+      "command": ["uvx", "mcp-server-time"],
+      "features": [
+        "current time",
+        "timezone conversion",
+        "date arithmetic",
+        "scheduling",
+        "temporal queries"
+      ],
+      "repository": "https://github.com/modelcontextprotocol/servers/tree/main/src/time"
+    }
+  },
+  "resources": {
+    "platforms": [
+      {
+        "name": "mcp.so",
+        "url": "https://mcp.so/",
+        "description": "Global MCP platform - 10,000+ servers, Chinese interface, direct install",
+        "servers": "10,000+"
+      },
+      {
+        "name": "MCPmarket.cn",
+        "url": "https://mcpmarket.cn/",
+        "description": "Chinese MCP market - 30,000+ tools, one-click connect, MCP Chat",
+        "servers": "30,000+"
+      },
+      {
+        "name": "Smithery.ai",
+        "url": "https://smithery.ai",
+        "description": "Heat-ranked MCP servers, interactive testing, AI-assisted discovery",
+        "servers": "1,700+"
+      },
+      {
+        "name": "Cursor Directory",
+        "url": "https://cursor.directory",
+        "description": "Curated MCP servers for Cursor IDE users",
+        "servers": "500+"
+      },
+      {
+        "name": "Awesome MCP Servers",
+        "url": "https://github.com/punkpeye/awesome-mcp-servers",
+        "description": "Curated GitHub list - 200+ high-quality servers",
+        "servers": "200+"
+      }
+    ],
+    "officialRepository": "https://github.com/modelcontextprotocol/servers"
+  }
+}

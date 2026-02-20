@@ -9,8 +9,6 @@ description: Use when creating Claude Code plugins, scaffolding plugin structure
 
 Comprehensive guide for developing Claude Code plugins. Consolidates guidance on plugin structure, commands, agents, skills, hooks, MCP integration, and settings into a single reference.
 
-**Core principle:** Follow conventions for auto-discovery. Use progressive disclosure for skills. Keep SKILL.md lean, details in references.
-
 ## Plugin Directory Structure
 
 ```
@@ -100,59 +98,11 @@ Agent system prompt and instructions...
 
 ## Skills
 
-**Location:** `skills/skill-name/SKILL.md` with optional subdirectories.
-
-```markdown
----
-name: Skill Name
-description: This skill should be used when the user asks to "specific phrase 1", "specific phrase 2"...
----
-
-Core instructions (1500-2000 words ideal, <3000 max)
-```
-
-**Progressive disclosure:**
-1. **Metadata** (always loaded) - name + description (~100 words)
-2. **SKILL.md body** (when triggered) - core instructions (<5k words)
-3. **Bundled resources** (as needed) - scripts/, references/, examples/, assets/
-
-**Description rules:**
-- Third person: "This skill should be used when..."
-- Include specific trigger phrases users would say
-- NEVER summarize the workflow (causes Claude to skip reading the skill body)
+See `superpowers:writing-skills` for skill creation methodology. Key difference: plugin skills use `skills/skill-name/SKILL.md` under plugin root.
 
 ## Hooks
 
-**Location:** `hooks/hooks.json`
-
-**Plugin format** (with wrapper):
-```json
-{
-  "description": "Optional description",
-  "hooks": {
-    "PreToolUse": [{
-      "matcher": "Write|Edit",
-      "hooks": [{
-        "type": "command",
-        "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate.sh",
-        "timeout": 30
-      }]
-    }]
-  }
-}
-```
-
-**Hook types:**
-- `prompt` (recommended): LLM-driven, context-aware decisions
-- `command`: Bash scripts for deterministic checks
-
-**Events:** PreToolUse, PostToolUse, Stop, SubagentStop, SessionStart, SessionEnd, UserPromptSubmit, PreCompact, Notification
-
-**Matchers:** Exact (`Write`), multiple (`Read|Write|Edit`), wildcard (`*`), regex (`mcp__.*`)
-
-**Exit codes:** 0 = success, 2 = blocking error
-
-**Important:** Hooks load at session start. Changes require restarting Claude Code.
+See `claudepowers:hookify` for hook creation. Plugin hooks go in `hooks/hooks.json` with the wrapper format shown in Directory Structure.
 
 ## MCP Integration
 
@@ -189,25 +139,6 @@ Parse in hooks with:
 ```bash
 sed -n '/^---$/,/^---$/p' "$file" | grep "^$key:" | sed "s/^$key: *//"
 ```
-
-## Auto-Discovery
-
-Claude Code automatically discovers:
-1. `.claude-plugin/plugin.json` -> Plugin registration
-2. `commands/*.md` -> Slash commands
-3. `agents/*.md` -> Subagent definitions
-4. `skills/*/SKILL.md` -> Skills
-5. `hooks/hooks.json` -> Event handlers
-6. `.mcp.json` -> MCP servers
-
-## Best Practices
-
-- **Naming:** Consistent kebab-case across all components
-- **Paths:** Always `${CLAUDE_PLUGIN_ROOT}`, never absolute
-- **Skills:** Keep SKILL.md lean, move details to `references/`
-- **Hooks:** Prefer prompt-based for complex logic, command for deterministic
-- **Testing:** Use `claude --debug` for hook debugging
-- **Validation:** Check structure, frontmatter syntax, file existence
 
 ## Integration
 

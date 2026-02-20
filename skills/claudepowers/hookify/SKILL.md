@@ -106,45 +106,24 @@ All conditions must match for a rule to trigger.
 
 ## Common Patterns
 
-### Bash Patterns
-```
-rm\s+-rf           # Dangerous rm
-sudo\s+            # Privilege escalation
-chmod\s+777        # Permissive permissions
-dd\s+if=           # Disk write
-npm\s+install\s+-g # Global npm install
-```
+| Pattern | Matches | Purpose |
+|---------|---------|---------|
+| `rm\s+-rf` | `rm -rf` | Dangerous recursive delete |
+| `sudo\s+` | `sudo ` | Privilege escalation |
+| `chmod\s+777` | `chmod 777` | Over-permissive files |
+| `dd\s+if=` | `dd if=` | Disk write operations |
+| `npm\s+install\s+-g` | `npm install -g` | Global package installs |
+| `console\.log\(` | `console.log(` | Debug logging |
+| `eval\(` | `eval(` | Code injection risk |
+| `innerHTML\s*=` | `innerHTML=` | XSS risk |
+| `\.env$` | `.env` files | Environment files |
+| `debugger` | `debugger` | Debug statements |
 
-### File Patterns
-```
-console\.log\(     # Debug logging
-eval\(             # Code injection risk
-innerHTML\s*=      # XSS risk
-\.env$             # Environment files
-debugger           # Debug statements
-```
-
-### Regex Tips
-- `\.` matches literal dot (`.` matches any char)
-- `\s` matches whitespace, `\s+` one or more
-- `|` means OR: `eval\(|exec\(`
-- Use unquoted patterns in YAML (no double-escape needed)
-- Test: `python3 -c "import re; print(re.search(r'pattern', 'test'))"`
+Test patterns: `python3 -c "import re; print(re.search(r'pattern', 'test'))"`
 
 ## Writing Good Messages
 
-```markdown
-⚠️ **Console.log detected!**
-
-Debug logs shouldn't ship to production.
-
-**Alternatives:**
-- Use a proper logging library
-- Remove before committing
-- Use conditional debug builds
-```
-
-Messages should:
+Good messages:
 - Explain what was detected
 - Explain why it's problematic
 - Suggest alternatives

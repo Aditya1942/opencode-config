@@ -258,7 +258,6 @@ When skills reference Claude Code tools, OpenCode uses these equivalents:
 │   │   ├── frontend-design/
 │   │   ├── hookify/
 │   │   ├── plugin-dev/
-│   │   ├── pr-review-toolkit/
 │   │   └── security-guidance/
 │   └── team-agents/            # Multi-agent coding architecture skill (19 sections)
 │       └── SKILL.md

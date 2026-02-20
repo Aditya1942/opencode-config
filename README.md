@@ -44,7 +44,7 @@ The `orchestrator` agent owns all model routing decisions. It decomposes tasks i
 brainstorming, writing-plans, executing-plans, test-driven-development, systematic-debugging, verification-before-completion, commit-and-push, using-git-worktrees, dispatching-parallel-agents, subagent-driven-development, requesting-code-review, receiving-code-review, finishing-a-development-branch, writing-skills, using-superpowers
 
 **Custom Skills** (claudepowers):
-code-review, explanatory-output, feature-dev, frontend-design, hookify, plugin-dev, pr-review-toolkit, security-guidance
+code-review, explanatory-output, feature-dev, frontend-design, hookify, plugin-dev, security-guidance
 
 **Orchestration**:
 team-agents (multi-agent coding architecture with provider-aware routing, confidence system, and escalation logic)
