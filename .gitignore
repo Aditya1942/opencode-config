@@ -21,3 +21,6 @@ superpowers/
 # Environment variables with sensitive data
 .env
 .env.local
+
+# Local OpenCode config with hardcoded API keys
+opencode-local.json
