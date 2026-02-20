@@ -17,3 +17,7 @@ antigravity-logs/
 # Superpowers (separate git repo, managed independently)
 superpowers/
 .gitignore
+
+# Environment variables with sensitive data
+.env
+.env.local
