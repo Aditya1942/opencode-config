@@ -1,44 +1,10 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "plugin": [
-    "opencode-antigravity-auth@latest",
-    "opencode-antigravity-quota@0.1.6"
+    "opencode-antigravity-auth@latest"
   ],
   "small_model": "opencode/gpt-5-nano",
   "mcp": {
-    "zai-vision": {
-      "type": "local",
-      "command": [
-        "npx",
-        "-y",
-        "@z_ai/mcp-server@latest"
-      ],
-      "environment": {
-        "Z_AI_API_KEY": "${Z_AI_API_KEY}",
-        "Z_AI_MODE": "ZAI"
-      }
-    },
-    "zai-web-search": {
-      "type": "remote",
-      "url": "https://api.z.ai/api/mcp/web_search_prime/mcp",
-      "headers": {
-        "Authorization": "Bearer ${Z_AI_API_KEY}"
-      }
-    },
-    "zai-web-reader": {
-      "type": "remote",
-      "url": "https://api.z.ai/api/mcp/web_reader/mcp",
-      "headers": {
-        "Authorization": "Bearer ${Z_AI_API_KEY}"
-      }
-    },
-    "zai-zread": {
-      "type": "remote",
-      "url": "https://api.z.ai/api/mcp/zread/mcp",
-      "headers": {
-        "Authorization": "Bearer ${Z_AI_API_KEY}"
-      }
-    },
     "everything": {
       "type": "local",
       "command": [
