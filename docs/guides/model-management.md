@@ -33,12 +33,13 @@ opencode.json           Task tool               Agent execution
 |-------|-------|----------|------|------|---------|
 | `build` | (user-selected) | — | — | primary | Default agent, delegates complex tasks |
 | `orchestrator` | (user-selected) | — | — | primary (plan only) | Decomposes tasks, plans, dispatches |
-| `explore` | `opencode/glm-5-free` | OpenCode Zen | T0 (free) | subagent | File reads, grep, directory listing |
-| `general` | `opencode/kimi-k2.5-free` | OpenCode Zen | T0 (free) | subagent | Code comprehension, multi-file analysis |
+| `explore` | `zai-coding-plan/glm-4.7-flash` | Z.AI Coding Plan | T1 | subagent | File reads, grep, directory listing (primary) |
+| `explore-fallback` | `opencode/glm-5-free` | OpenCode Zen | T0 (free) | subagent (hidden) | File reads, grep, directory listing (fallback) |
+| `general` | `zai-coding-plan/glm-4.7` | Z.AI Coding Plan | T1 | subagent | Code comprehension, multi-file analysis |
 | `transform` | `opencode/minimax-m2.5-free` | OpenCode Zen | T0 (free) | subagent (hidden) | Renames, formatting, simple refactors |
 | `validator` | `opencode/gpt-5-nano` | OpenCode Zen | T0 (free) | subagent (hidden) | Output validation, format checks |
-| `executor-sonnet` | `anthropic/claude-sonnet-4-6` | Anthropic | T1 | subagent | Primary code generation, implementation |
-| `executor` | `zai-coding-plan/glm-4.7` | Z.AI Coding Plan | T1 | subagent | Fallback code executor |
+| `executor` | `zai-coding-plan/glm-4.7` | Z.AI Coding Plan | T1 | subagent | Primary code executor (implementation, tests) |
+| `executor-sonnet` | `anthropic/claude-sonnet-4-6` | Anthropic | T1 | subagent | Fallback code executor (when executor fails) |
 | `code-reviewer` | `zai-coding-plan/glm-4.7` | Z.AI Coding Plan | T1 | subagent | Post-implementation review |
 
 ---
