@@ -55,12 +55,13 @@ There are no test commands. If you add tests, use Bun's built-in test runner (`b
 |--------------------|-------------------------------|-----------------------------------------|-----------|
 | `build` (primary)  | (user-selected)               | Default primary agent, delegates complex tasks to orchestrator | primary |
 | `orchestrator`     | (user-selected)               | Planning orchestrator — decomposes, plans, dispatches | primary (plan only) |
-| `explore`          | GLM 5 Free (OpenCode Zen)     | File reads, grep, directory listing      | subagent  |
-| `general`          | Kimi K2.5 Free (OpenCode Zen) | Code comprehension, multi-file analysis  | subagent  |
+| `explore`          | GLM 4.7 Flash (`zai-coding-plan/glm-4.7-flash`) | File reads, grep, directory listing (primary) | subagent  |
+| `explore-fallback` | GLM 5 Free (`opencode/glm-5-free`) | File reads, grep, directory listing (fallback) | subagent (hidden) |
+| `general`          | GLM 4.7 (`zai-coding-plan/glm-4.7`) | Code comprehension, multi-file analysis  | subagent  |
 | `transform`        | MiniMax M2.5 Free (OpenCode Zen) | Renames, formatting, simple refactors | subagent (hidden) |
 | `validator`        | GPT-5 Nano (OpenCode Zen)     | Output validation, format checks         | subagent (hidden) |
-| `executor-sonnet`  | Claude Sonnet 4.6 (Anthropic) | Primary code generation, implementation  | subagent  |
-| `executor`         | GLM 4.7 (`zai-coding-plan/glm-4.7`) | Fallback code executor              | subagent  |
+| `executor`         | GLM 4.7 (`zai-coding-plan/glm-4.7`) | Primary code executor (implementation, tests) | subagent  |
+| `executor-sonnet`  | Claude Sonnet 4.6 (Anthropic) | Fallback code executor (when executor fails) | subagent  |
 | `code-reviewer`    | GLM 4.7 (`zai-coding-plan/glm-4.7`) | Post-implementation review          | subagent  |
 
 ### Orchestrator Architecture (Plan → Confirm → Execute)
@@ -69,7 +70,7 @@ The `orchestrator` agent is the central intelligence of the multi-agent system. 
 - Decomposes user tasks into a dependency DAG of microtasks
 - Routes each microtask to the optimal model across a 3-tier cost hierarchy
 - **Presents the plan to the user and waits for explicit confirmation**
-- After confirmation, dispatches `executor-sonnet` (primary) or `executor` (fallback) subagents in build mode
+- After confirmation, dispatches `executor` (primary, GLM 4.7) or `executor-sonnet` (fallback, Sonnet 4.6) subagents in build mode
 - Validates outputs with dual-mode confidence scoring (self-report + independent assessment)
 - Routes security and complex tasks to Claude Opus 4.6 via the Final Authority Rule (see team-agents skill)
 - Operates in **plan mode only** — never writes code or edits files directly
@@ -78,8 +79,8 @@ The `orchestrator` agent is the central intelligence of the multi-agent system. 
 
 | Tier | Provider | Models | Purpose |
 |------|----------|--------|---------|
-| **Tier 0** (Free) | OpenCode Zen | GLM 5 Free, Kimi K2.5 Free, MiniMax M2.5 Free, Big Pickle, GPT-5 Nano | Exploration, reads, lightweight tasks |
-| **Tier 1** (Anthropic + Z.AI) | Anthropic / Z.AI Coding Plan | Claude Sonnet 4.6 (primary), GLM 4.7 (fallback), GLM 4.7 Flash, GLM 4.7 FlashX | Code generation, execution, testing |
+| **Tier 0** (Free/Explore) | OpenCode Zen / Z.AI | GLM 4.7 Flash (explore), GLM 5 Free (explore-fallback), MiniMax M2.5 Free, Big Pickle, GPT-5 Nano | Exploration, reads, lightweight tasks |
+| **Tier 1** (Z.AI + Anthropic) | Z.AI Coding Plan / Anthropic | GLM 4.7 (executor, primary), Claude Sonnet 4.6 (executor-sonnet, fallback), GLM 4.7 (general), GLM 4.7 FlashX | Code generation, execution, testing |
 | **Tier 2** (Anthropic) | Anthropic | Claude Opus 4.6 | Complex reasoning, security, final authority |
 
 The full architecture spec is in the `team-agents` skill (20 sections covering model routing,

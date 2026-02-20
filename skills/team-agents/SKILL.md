@@ -12,26 +12,27 @@ The orchestrator uses the currently selected model for planning and orchestratio
 ### Priority Order
 
 ```
-1. FREE MODELS FIRST      → Always try OpenCode Zen free models
-2. CLAUDE SONNET 4.6       → General-purpose workhorse for real coding work
-3. Z.AI MODELS (GLM 4.7)  → Extra capacity / fallback when free models fail and Sonnet isn't needed
-4. CLAUDE OPUS 4.6         → Final authority, security, complex logic — last resort
+1. EXPLORATION MODELS      → GLM 4.7 Flash (explore), GLM 5 Free (explore-fallback)
+2. EXECUTOR (GLM 4.7)      → Primary code executor for all coding work
+3. EXECUTOR-SONNET (4.6)   → Fallback when executor fails or is unavailable
+4. Z.AI EXTRAS             → GLM 4.7 FlashX for deep analysis fallback
+5. CLAUDE OPUS 4.6         → Final authority, security, complex logic — last resort
 ```
 
 ### Quick Reference
 
 | Priority | Model | ID | Provider | Cost | Context | Speed | Role |
 |----------|-------|-----|----------|------|---------|-------|------|
-| 1st | GLM 5 Free | `opencode/glm-5-free` | OpenCode Zen | Free | 128K | Very fast | File Explorer |
-| 1st | Kimi K2.5 Free | `opencode/kimi-k2.5-free` | OpenCode Zen | Free | 128K | Fast | Code Comprehension |
+| 1st | GLM 4.7 Flash | `zai-coding-plan/glm-4.7-flash` | Z.AI Coding Plan | Paid | 128K | Fast | File Explorer (primary) |
+| 1st | GLM 5 Free | `opencode/glm-5-free` | OpenCode Zen | Free | 128K | Very fast | File Explorer (fallback) |
+| 1st | GLM 4.7 | `zai-coding-plan/glm-4.7` | Z.AI Coding Plan | Paid | 128K | Moderate | Code Comprehension |
 | 1st | MiniMax M2.5 Free | `opencode/minimax-m2.5-free` | OpenCode Zen | Free | 128K | Fast | Lightweight Transform |
 | 1st | Big Pickle | `opencode/big-pickle` | OpenCode Zen | Free | 128K | Fast | Pattern Analysis |
 | 1st | GPT-5 Nano | `opencode/gpt-5-nano` | OpenCode Zen | Free | 400K | Very fast | Validation |
-| 2nd | Claude Sonnet 4.6 | `anthropic/claude-sonnet-4-6` | Anthropic | Paid | 200K–1M | Fast | General Purpose (features, tests, review, refactoring) |
-| 3rd | GLM 4.7 Flash | `zai-coding-plan/glm-4.7-flash` | Z.AI Coding Plan | Paid | 128K | Fast | Extra: fallback exploration |
-| 3rd | GLM 4.7 FlashX | `zai-coding-plan/glm-4.7-flashx` | Z.AI Coding Plan | Paid | 128K | Moderate | Extra: fallback deep analysis |
-| 3rd | GLM 4.7 | `zai-coding-plan/glm-4.7` | Z.AI Coding Plan | Paid | 128K | Moderate | Extra: fallback code execution |
-| 4th | Claude Opus 4.6 | `anthropic/claude-opus-4-6` | Anthropic | Premium | 200K–1M | Moderate | Final Authority / Security / Complex Logic |
+| 2nd | GLM 4.7 | `zai-coding-plan/glm-4.7` | Z.AI Coding Plan | Paid | 128K | Moderate | Primary Code Executor |
+| 3rd | Claude Sonnet 4.6 | `anthropic/claude-sonnet-4-6` | Anthropic | Paid | 200K–1M | Fast | Fallback Code Executor |
+| 4th | GLM 4.7 FlashX | `zai-coding-plan/glm-4.7-flashx` | Z.AI Coding Plan | Paid | 128K | Moderate | Extra: fallback deep analysis |
+| 5th | Claude Opus 4.6 | `anthropic/claude-opus-4-6` | Anthropic | Premium | 200K–1M | Moderate | Final Authority / Security / Complex Logic |
 
 ---
 
@@ -41,10 +42,10 @@ Each model below is documented with its role, strengths, prompting guide, anti-p
 
 ---
 
-### 2.1 GLM 5 Free — File Explorer
+### 2.1 GLM 4.7 Flash — File Explorer (Primary)
 
 **Role:** Primary file reader and codebase navigator.
-**ID:** `opencode/glm-5-free` · **Subagent type:** `explore` · **Temperature:** 0.4
+**ID:** `zai-coding-plan/glm-4.7-flash` · **Subagent type:** `explore` · **Temperature:** 0.4
 
 **Capabilities:**
 - Read single files and return contents accurately
@@ -80,14 +81,27 @@ Return as JSON:
 }
 ```
 
-**Fallback chain:** GPT-5 Nano → GLM 4.7 Flash (extra) → Claude Opus 4.6
+**Fallback chain:** explore-fallback (GLM 5 Free) → GPT-5 Nano → Claude Opus 4.6
 
 ---
 
-### 2.2 Kimi K2.5 Free — Code Comprehension
+### 2.1b GLM 5 Free — File Explorer (Fallback)
+
+**Role:** Fallback file reader and codebase navigator. Used when the primary `explore` agent (GLM 4.7 Flash) fails.
+**ID:** `opencode/glm-5-free` · **Subagent type:** `explore-fallback` · **Temperature:** 0.4
+
+**Capabilities:** Same as primary explore — reads files, searches directories, lists structures.
+
+**When to use:** Only when `explore` (GLM 4.7 Flash) fails or is unavailable.
+
+**Fallback chain:** GPT-5 Nano → Claude Opus 4.6
+
+---
+
+### 2.2 GLM 4.7 — Code Comprehension
 
 **Role:** Primary code reader and understanding engine. Reads code and explains what it does, how modules connect, and where important logic lives.
-**ID:** `opencode/kimi-k2.5-free` · **Subagent type:** `explore` · **Temperature:** 0.4
+**ID:** `zai-coding-plan/glm-4.7` · **Subagent type:** `general` · **Temperature:** 0.4
 
 **Capabilities:**
 - Understand how a module works and summarize its purpose
@@ -102,13 +116,13 @@ Return as JSON:
 - Provide all relevant file paths upfront — it handles 3–8 files in one prompt well
 - Ask it to explain relationships: "How does module A call module B?"
 - Use for "understand before implementing" phases — dispatch before code generation
-- For debugging, dispatch multiple Kimi agents with different theories in parallel (competing hypotheses)
+- For debugging, dispatch multiple general agents with different theories in parallel (competing hypotheses)
 - Give clear boundaries: "Only analyze files in src/auth/"
 - It excels when you ask specific questions rather than open-ended exploration
 
 **What to avoid:**
 - Don't ask it to write production code — it understands, it doesn't generate well
-- Don't use for simple file reads (use GLM 5 Free — it's faster for that)
+- Don't use for simple file reads (use explore / GLM 4.7 Flash — it's faster for that)
 - Don't ask it to make modifications or produce patch diffs
 - Don't send vague prompts like "tell me about the codebase" — scope it down
 
@@ -132,7 +146,7 @@ Return as JSON:
 }
 ```
 
-**Fallback chain:** Claude Sonnet 4.6 → GLM 4.7 FlashX (extra) → Claude Opus 4.6
+**Fallback chain:** Claude Sonnet 4.6 → GLM 4.7 FlashX → Claude Opus 4.6
 
 ---
 
@@ -292,34 +306,34 @@ Return as JSON:
 
 ---
 
-### 2.6 GLM 4.7 Flash — Extra: Fallback Explorer
+### 2.6 GLM 4.7 Flash — Primary File Explorer
 
-**Role:** Extra capacity explorer. **Not a primary model.** Only used when free models (GLM 5 Free, GPT-5 Nano) fail at exploration tasks and the task doesn't warrant Sonnet 4.6.
+**Role:** Primary file reader and codebase navigator. The first-choice model for all file exploration tasks.
 **ID:** `zai-coding-plan/glm-4.7-flash` · **Subagent type:** `explore` · **Temperature:** 0.4
 
 **Capabilities:**
-- Everything GLM 5 Free does, but with higher accuracy and light reasoning
-- Multi-file search with basic reasoning about results
+- Read files and return contents accurately, with light reasoning about results
+- Multi-file search with basic reasoning
+- List directory structures and file trees
 - Dependency tracing when the structure is straightforward
-- Quick re-validation when GPT-5 Nano's output needs a second check
+- Check file/function existence
 
-**When to use (fallback only):**
-- A free model failed at an exploration task and the task is too simple for Sonnet
-- GPT-5 Nano validation was inconclusive and you need a quick second opinion
-- You need slightly better reasoning than free models but don't need full Sonnet intelligence
+**When to use:**
+- Any file read, grep, directory listing, or simple lookup task — always try this first
+- Quick re-validation when GPT-5 Nano's output needs a second check
+- High-volume parallel reads (fan-out 5–10 files simultaneously)
 
 **What to avoid:**
-- Don't use as first choice — always try free models first
-- Don't use for code generation — use Claude Sonnet 4.6
-- Don't use for deep multi-file analysis — use Sonnet 4.6 or Opus
+- Don't use for deep code generation — use executor (GLM 4.7)
+- Don't use for deep multi-file reasoning — use general (GLM 4.7) or Opus
 
-**Fallback chain:** Claude Sonnet 4.6 → Claude Opus 4.6
+**Fallback chain:** explore-fallback (GLM 5 Free) → GPT-5 Nano → Claude Opus 4.6
 
 ---
 
 ### 2.7 GLM 4.7 FlashX — Extra: Fallback Deep Analysis
 
-**Role:** Extra capacity deep analyzer. **Not a primary model.** Only used as a fallback when Kimi K2.5 Free fails at comprehension and the task doesn't require Sonnet-level intelligence.
+**Role:** Extra capacity deep analyzer. **Not a primary model.** Only used as a fallback when the general agent (GLM 4.7) fails at comprehension and the task doesn't require Sonnet-level intelligence.
 **ID:** `zai-coding-plan/glm-4.7-flashx` · **Subagent type:** `explore` · **Temperature:** 0.3
 
 **Capabilities:**
@@ -329,12 +343,12 @@ Return as JSON:
 - Complex dependency tracing across layers
 
 **When to use (fallback only):**
-- Kimi K2.5 Free failed at a comprehension task
+- The general agent (GLM 4.7) failed at a comprehension task
 - Big Pickle failed at pattern analysis and you need a second pass
-- The task needs more depth than free models but is too narrow for Sonnet
+- The task needs more depth than the general agent but is too narrow for Sonnet
 
 **What to avoid:**
-- Don't use as first choice — try Kimi K2.5 Free first
+- Don't use as first choice — try the general agent (GLM 4.7) first
 - Don't ask it to generate code — it analyzes only
 - Don't use for security analysis (use Claude Opus 4.6)
 
@@ -364,30 +378,28 @@ Return as JSON:
 
 ---
 
-### 2.8 GLM 4.7 — Extra: Fallback Code Executor
+### 2.8 GLM 4.7 — Primary Code Executor
 
-**Role:** Extra capacity code executor. **Not a primary model.** Only used when MiniMax M2.5 Free fails at a transform/boilerplate task and the task is too small to justify Sonnet 4.6.
-**ID:** `zai-coding-plan/glm-4.7` · **Subagent type:** `general` · **Temperature:** 0.2
+**Role:** Primary code executor. The default choice for all coding tasks — feature implementation, test writing, refactoring, and targeted edits. Fall back to `executor-sonnet` (Claude Sonnet 4.6) only if this model fails.
+**ID:** `zai-coding-plan/glm-4.7` · **Subagent type:** `executor` · **Temperature:** 0.2
 
 **Capabilities:**
 - Execute well-defined, focused code changes
 - Apply patches and make targeted edits to files
 - Run commands and report results
-- Write single functions or small code units from clear specs
+- Write functions, modules, and small code units from clear specs
 - Follow explicit instructions with high reliability
 - 128K context window
 
-**When to use (fallback only):**
-- MiniMax M2.5 Free failed at a lightweight transform
-- You have a very precise, pre-digested microtask that doesn't need Sonnet's intelligence
-- The task is a simple, mechanical code change (1–2 files) where Sonnet would be overkill
+**When to use:**
+- All standard code generation, feature implementation, and test writing tasks
+- Any task the orchestrator would normally delegate to an executor
+- Targeted 1–3 file changes where instructions are clear
 
 **What to avoid:**
-- Don't use as first choice — try free models first, then Sonnet 4.6
-- Don't use for tasks requiring reasoning or architectural judgment — use Sonnet 4.6
 - Don't use for security-sensitive code — use Claude Opus 4.6
-- Don't use for async/concurrency logic — use Sonnet 4.6 or Opus
-- Don't ask it to modify more than 3 files at once — use Sonnet 4.6
+- Don't use for async/concurrency-critical logic — use Sonnet 4.6 or Opus
+- Don't ask it to modify more than 3 files at once — escalate to Sonnet 4.6
 
 **Prompt template:**
 ```
@@ -417,10 +429,10 @@ Return as JSON:
 
 ---
 
-### 2.9 Claude Sonnet 4.6 — General Purpose
+### 2.9 Claude Sonnet 4.6 — Fallback Code Executor
 
-**Role:** The general-purpose workhorse. Handles feature implementation, test writing, code review, standard refactoring, and any task that needs both speed and intelligence. The default choice for most coding work that free models can't handle.
-**ID:** `anthropic/claude-sonnet-4-6` · **Subagent type:** `general` · **Temperature:** 0.2 (code gen), 0.3 (tests), 0.4 (analysis)
+**Role:** Fallback code executor. Used when the primary `executor` (GLM 4.7) is unavailable or fails. Also handles tasks that require higher intelligence: multi-file changes >3 files, complex refactoring, and deep debugging.
+**ID:** `anthropic/claude-sonnet-4-6` · **Subagent type:** `executor-sonnet` · **Temperature:** 0.2 (code gen), 0.3 (tests), 0.4 (analysis)
 
 **Capabilities:**
 - Feature implementation from specifications — full functions, modules, API endpoints
@@ -437,7 +449,7 @@ Return as JSON:
 - $3/$15 per MTok — 40% cheaper than Opus
 
 **How to use this model well:**
-- Use it as the primary model for all standard feature work, test generation, and code review
+- Use as fallback when `executor` (GLM 4.7) fails or for tasks exceeding its scope (>3 files, complex logic)
 - Provide context from explorer/comprehension agents — it works best with pre-gathered context
 - Include the project's coding conventions, test framework, and lint rules
 - Give explicit file paths and clear specifications
@@ -450,8 +462,8 @@ Return as JSON:
 - Don't use for security audits or vulnerability analysis — always use Claude Opus 4.6
 - Don't use for multi-file changes >5 files — escalate to Opus
 - Don't use for async/concurrency-heavy logic where correctness is critical — use Opus
-- Don't use for simple file reads or searches (use free models)
-- Don't use for simple renames or formatting (use MiniMax M2.5 Free)
+- Don't use for simple file reads or searches (use explore / explore-fallback)
+- Don't use for simple renames or formatting (use MiniMax M2.5 Free / transform)
 
 **Prompt template (feature implementation):**
 ```
@@ -624,11 +636,13 @@ These are the actual `subagent_type` values to use when dispatching via the Task
 
 | Abstract Role | subagent_type | Model | Configured In |
 |---|---|---|---|
-| File Explorer | `explore` | opencode/glm-5-free | opencode.json |
-| Code Comprehension | `general` | opencode/kimi-k2.5-free | opencode.json |
+| File Explorer (primary) | `explore` | zai-coding-plan/glm-4.7-flash | opencode.json |
+| File Explorer (fallback) | `explore-fallback` | opencode/glm-5-free | opencode.json |
+| Code Comprehension | `general` | zai-coding-plan/glm-4.7 | opencode.json |
 | Lightweight Transform | `transform` | opencode/minimax-m2.5-free | opencode.json |
 | Output Validator | `validator` | opencode/gpt-5-nano | opencode.json |
-| Code Executor | `executor` | zai-coding-plan/glm-4.7 | opencode.json |
+| Primary Code Executor | `executor` | zai-coding-plan/glm-4.7 | opencode.json |
+| Fallback Code Executor | `executor-sonnet` | anthropic/claude-sonnet-4-6 | opencode.json |
 | Code Reviewer | `code-reviewer` | zai-coding-plan/glm-4.7 | opencode.json |
 | Final Authority | (orchestrator routes to Opus for security/complex) | anthropic/claude-opus-4-6 | per team-agents rules |
 
@@ -636,7 +650,7 @@ These are the actual `subagent_type` values to use when dispatching via the Task
 
 ### Routing Logic
 
-The orchestrator identifies the task type and routes to the right model following the priority order: **Free first → Sonnet 4.6 → Z.AI extras → Opus 4.6**.
+The orchestrator identifies the task type and routes to the right model following the priority order: **explore/general first → executor (GLM 4.7) → executor-sonnet (Sonnet 4.6) → Opus 4.6**.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -684,22 +698,22 @@ The orchestrator identifies the task type and routes to the right model followin
 
 | Task Type | Primary Model | Priority | Detection Signals |
 |-----------|--------------|----------|-------------------|
-| **file_read** | GLM 5 Free | 1st (free) | "read", "cat", "show me", single file path, "list files" |
-| **search** | GLM 5 Free | 1st (free) | "grep", "find", "search for", pattern + directory |
-| **comprehend** | Kimi K2.5 Free | 1st (free) | "explain", "how does X work", "analyze", "understand", multiple files |
+| **file_read** | GLM 4.7 Flash (explore) | 1st | "read", "cat", "show me", single file path, "list files" |
+| **search** | GLM 4.7 Flash (explore) | 1st | "grep", "find", "search for", pattern + directory |
+| **comprehend** | GLM 4.7 (general) | 1st | "explain", "how does X work", "analyze", "understand", multiple files |
 | **transform** | MiniMax M2.5 Free | 1st (free) | "rename", "reformat", "convert", "refactor" (no logic change) |
 | **pattern_scan** | Big Pickle | 1st (free) | "find all", "scan for", "audit" (non-security), bulk analysis |
 | **validate** | GPT-5 Nano | 1st (free) | "check", "verify", "validate", after another agent's output |
-| **generate_code** | Claude Sonnet 4.6 | 2nd (paid) | "implement", "write", "create", "add feature", "build" |
-| **write_tests** | Claude Sonnet 4.6 | 2nd (paid) | "write tests", "add test coverage", "test this" |
-| **code_review** | Claude Sonnet 4.6 | 2nd (paid) | "review", "check quality", "does this follow conventions" |
-| **refactor** | Claude Sonnet 4.6 | 2nd (paid) | "refactor" (with logic changes), "restructure", "redesign" |
-| **deep_analyze** | Claude Sonnet 4.6 | 2nd (paid) | "architecture", "impact analysis", "how do these modules interact" |
+| **generate_code** | GLM 4.7 (executor) | 2nd (primary) | "implement", "write", "create", "add feature", "build" |
+| **write_tests** | GLM 4.7 (executor) | 2nd (primary) | "write tests", "add test coverage", "test this" |
+| **code_review** | GLM 4.7 (executor) | 2nd (primary) | "review", "check quality", "does this follow conventions" |
+| **refactor** | GLM 4.7 (executor) | 2nd (primary) | "refactor" (with logic changes), "restructure", "redesign" |
+| **deep_analyze** | GLM 4.7 (executor) | 2nd (primary) | "architecture", "impact analysis", "how do these modules interact" |
 | **security** | Claude Opus 4.6 | 4th (direct) | "security", "vulnerability", "auth", "crypto", "injection", "XSS" |
 | **complex_logic** | Claude Opus 4.6 | 4th (direct) | async/await, concurrency, multi-file >5, confidence <0.65 |
 | **architecture** | Claude Opus 4.6 | 4th (direct) | "system design", "architecture", breaking changes, >5 files |
 
-**Note:** Z.AI models (GLM 4.7 Flash/FlashX/4.7) are **never primary routes**. They only appear in fallback chains when free models fail and the task is too small for Sonnet.
+**Note:** `executor-sonnet` (Claude Sonnet 4.6) is the fallback for `executor` (GLM 4.7) — not the default. GLM 4.7 Flash is the primary explore agent; GLM 5 Free (`explore-fallback`) activates only if it fails.
 
 ---
 
@@ -707,22 +721,22 @@ The orchestrator identifies the task type and routes to the right model followin
 
 When a model fails, the orchestrator moves to the next model in that role's fallback chain. **Never retry the same model twice.**
 
-| Role | Primary (try first) | Fallback 1 | Fallback 2 (Z.AI extra) | Final Fallback |
-|------|---------------------|------------|-------------------------|----------------|
-| File Explorer | GLM 5 Free | GPT-5 Nano | GLM 4.7 Flash | Claude Opus 4.6 |
-| Code Comprehension | Kimi K2.5 Free | Claude Sonnet 4.6 | GLM 4.7 FlashX | Claude Opus 4.6 |
-| Lightweight Transform | MiniMax M2.5 Free | Claude Sonnet 4.6 | GLM 4.7 | Claude Opus 4.6 |
-| Pattern Analysis | Big Pickle | Kimi K2.5 Free | GLM 4.7 FlashX | Claude Opus 4.6 |
-| Validation | GPT-5 Nano | Claude Sonnet 4.6 | GLM 4.7 Flash | Claude Opus 4.6 |
-| Code Generation | Claude Sonnet 4.6 | — | — | Claude Opus 4.6 |
-| Test Writing | Claude Sonnet 4.6 | — | — | Claude Opus 4.6 |
-| Code Review | Claude Sonnet 4.6 | — | — | Claude Opus 4.6 |
-| Refactoring | Claude Sonnet 4.6 | — | — | Claude Opus 4.6 |
-| Deep Analysis | Claude Sonnet 4.6 | — | — | Claude Opus 4.6 |
+| Role | Primary (try first) | Fallback 1 | Fallback 2 | Final Fallback |
+|------|---------------------|------------|------------|----------------|
+| File Explorer | GLM 4.7 Flash (`explore`) | GLM 5 Free (`explore-fallback`) | GPT-5 Nano | Claude Opus 4.6 |
+| Code Comprehension | GLM 4.7 (`general`) | Claude Sonnet 4.6 | GLM 4.7 FlashX | Claude Opus 4.6 |
+| Lightweight Transform | MiniMax M2.5 Free (`transform`) | GLM 4.7 (`executor`) | Claude Sonnet 4.6 | Claude Opus 4.6 |
+| Pattern Analysis | Big Pickle | GLM 4.7 (`general`) | GLM 4.7 FlashX | Claude Opus 4.6 |
+| Validation | GPT-5 Nano (`validator`) | Claude Sonnet 4.6 | GLM 4.7 Flash | Claude Opus 4.6 |
+| Code Generation | GLM 4.7 (`executor`) | Claude Sonnet 4.6 (`executor-sonnet`) | — | Claude Opus 4.6 |
+| Test Writing | GLM 4.7 (`executor`) | Claude Sonnet 4.6 (`executor-sonnet`) | — | Claude Opus 4.6 |
+| Code Review | GLM 4.7 (`executor`) | Claude Sonnet 4.6 (`executor-sonnet`) | — | Claude Opus 4.6 |
+| Refactoring | GLM 4.7 (`executor`) | Claude Sonnet 4.6 (`executor-sonnet`) | — | Claude Opus 4.6 |
+| Deep Analysis | GLM 4.7 (`executor`) | Claude Sonnet 4.6 (`executor-sonnet`) | — | Claude Opus 4.6 |
 | Security Audit | Claude Opus 4.6 | — | — | — |
 | Complex Logic | Claude Opus 4.6 | — | — | — |
 
-**Key principle:** Free → Sonnet → Z.AI extras → Opus. Z.AI models are used **only** when a free model fails and the task is too small to justify Sonnet. For real coding work, go straight from free models to Sonnet 4.6.
+**Key principle:** explore/general agents gather context → executor (GLM 4.7) does the work → executor-sonnet (Sonnet 4.6) is the fallback → Opus 4.6 for security/complex/final authority.
 
 ### When to Trigger Fallback
 
@@ -753,7 +767,7 @@ You are an **orchestrator** in a role-based, cost-optimized multi-agent coding s
 - **Fallback** through each role's chain when a model fails
 - **Enforce** Claude Opus 4.6 as the final authority for security and complex logic
 
-**Core principle:** Free models first, always. Use Claude Sonnet 4.6 for real coding work (features, tests, review, refactoring). Z.AI models (GLM 4.7 family) are extras — only used when free models fail and the task is too small for Sonnet. Claude Opus 4.6 is the final fallback and the only model used for security, complex logic, and architecture.
+**Core principle:** Use `explore` (GLM 4.7 Flash) and `general` (GLM 4.7) to gather context. Use `executor` (GLM 4.7) as the primary code executor for all coding work. Fall back to `executor-sonnet` (Claude Sonnet 4.6) when the executor fails or for tasks requiring higher intelligence (>3 files, complex logic). Claude Opus 4.6 is the final fallback and the only model for security, complex logic, and architecture.
 
 ## 6. When to Use
 
@@ -856,12 +870,12 @@ You independently assess confidence based on:
 Before dispatching, identify which tasks depend on others:
 
 ```
-T1 (GLM 5: read auth files) ------+
-T2 (Kimi K2.5: understand flow) --+--> T4 (Sonnet 4.6: implement feature)
-T3 (GLM 5: read API files) -------+            |
-                                         T5 (Sonnet 4.6: write tests)
-                                                |
-                                         T6 (Opus 4.6: security audit)
+T1 (explore/GLM 4.7 Flash: read auth files) ------+
+T2 (general/GLM 4.7: understand flow) ------------+--> T4 (executor/GLM 4.7: implement feature)
+T3 (explore/GLM 4.7 Flash: read API files) -------+            |
+                                                        T5 (executor/GLM 4.7: write tests)
+                                                                |
+                                                        T6 (Opus 4.6: security audit)
 ```
 
 - T1, T2, T3 are **parallel** (no dependencies)
@@ -984,9 +998,9 @@ Dispatch multiple specialists to different areas simultaneously:
 ```
 Task: "Understand the authentication flow"
 
-Agent 1 (GLM 5 Free): Read src/auth/ directory, list all files
-Agent 2 (Kimi K2.5 Free): Analyze src/auth/login.ts and src/auth/token.ts
-Agent 3 (GLM 5 Free): Read package.json for auth-related dependencies
+Agent 1 (explore/GLM 4.7 Flash): Read src/auth/ directory, list all files
+Agent 2 (general/GLM 4.7): Analyze src/auth/login.ts and src/auth/token.ts
+Agent 3 (explore/GLM 4.7 Flash): Read package.json for auth-related dependencies
 ```
 
 ### Competing Hypotheses
@@ -996,9 +1010,9 @@ For debugging, dispatch agents with different theories:
 ```
 Task: "App crashes on login"
 
-Agent 1 (Kimi K2.5): Investigate null pointer in token parsing
-Agent 2 (Kimi K2.5): Investigate network timeout issue
-Agent 3 (Kimi K2.5): Investigate threading/coroutine scope issue
+Agent 1 (general/GLM 4.7): Investigate null pointer in token parsing
+Agent 2 (general/GLM 4.7): Investigate network timeout issue
+Agent 3 (general/GLM 4.7): Investigate threading/coroutine scope issue
 ```
 
 ### Explore → Generate → Review Pipeline
@@ -1006,13 +1020,13 @@ Agent 3 (Kimi K2.5): Investigate threading/coroutine scope issue
 The most common multi-agent pipeline (follows priority order):
 
 ```
-Phase 1 (parallel, FREE):  GLM 5 Free + Kimi K2.5 Free gather context
-Phase 2 (SONNET):          Claude Sonnet 4.6 implements the feature
-Phase 3 (parallel):        GPT-5 Nano (FREE) validates + Sonnet 4.6 writes tests
+Phase 1 (parallel):        explore (GLM 4.7 Flash) + general (GLM 4.7) gather context
+Phase 2 (EXECUTOR):        executor (GLM 4.7) implements the feature
+Phase 3 (parallel):        validator (GPT-5 Nano) validates + executor writes tests
 Phase 4 (if needed, OPUS): Claude Opus 4.6 security audit
 ```
 
-Note: Z.AI models don't appear in the standard pipeline. They only activate if a free model fails in Phase 1 or 3.
+Note: `executor-sonnet` (Sonnet 4.6) activates only if `executor` (GLM 4.7) fails in Phase 2 or 3.
 
 ### Critical Path Thinking
 
@@ -1087,9 +1101,9 @@ Some tasks bypass the routing system entirely and go straight to Claude Opus 4.6
 
 | Anti-Pattern | Symptoms | Fix |
 |-------------|----------|-----|
-| **Skipping Free Models** | Using Sonnet for file reads or renames, Z.AI for simple lookups | Always try free models first — they're free |
-| **Z.AI as Primary** | Routing tasks directly to GLM 4.7 family | Z.AI models are extras/fallback only, not primary routes |
-| **Wrong Specialist** | Sending file reads to Sonnet, code gen to GLM 5 | Match task type to model role (Section 3) |
+| **Skipping explore/general** | Using executor-sonnet for file reads or comprehension | Always use explore (GLM 4.7 Flash) and general (GLM 4.7) first |
+| **Sonnet as Primary Executor** | Routing code tasks directly to executor-sonnet | executor (GLM 4.7) is primary; executor-sonnet is fallback only |
+| **Wrong Specialist** | Sending file reads to executor, code gen to explore | Match task type to model role (Section 3) |
 | **Serial Collapse** | Reading files one at a time | Dispatch independent tasks simultaneously |
 | **Skipping Fallback** | Retrying the same model that failed | Move to next model in chain immediately |
 | **Opus for Everything** | Using Opus for standard features | Use Sonnet 4.6 for general work, Opus for security/complex |
@@ -1115,12 +1129,11 @@ Some tasks bypass the routing system entirely and go straight to Claude Opus 4.6
 
 This architecture ensures:
 
-- **Free-first routing** — always try free OpenCode Zen models before spending on paid models
 - **Role-based routing** — every model has a defined responsibility, no ambiguity
 - **Graceful degradation** — every role has a fallback chain ending at Claude Opus 4.6
-- **Cost optimization** — free models for reads/comprehension/transforms, Sonnet for real work, Z.AI as extras, Opus only for security/complex
-- **General-purpose workhorse** — Claude Sonnet 4.6 handles the bulk of coding work at 40% less than Opus
-- **Z.AI as reserve capacity** — GLM 4.7 family available as fallback when free models fail and Sonnet isn't needed
+- **Cost-conscious execution** — GLM 4.7 Flash for exploration, GLM 4.7 for code execution, Sonnet 4.6 as fallback, Opus only for security/complex
+- **Primary executor** — GLM 4.7 (`executor`) handles the bulk of coding work
+- **Sonnet as reserve capacity** — Claude Sonnet 4.6 (`executor-sonnet`) activates only when the primary executor fails or the task requires higher intelligence
 - **Deterministic execution** — structured JSON outputs, no free-text drift
 - **Hallucination mitigation** — validator agents, confidence caps, import checking
 - **Security-first escalation** — security tasks always route to Opus, no exceptions
