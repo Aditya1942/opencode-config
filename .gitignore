@@ -24,3 +24,4 @@ superpowers/
 
 # Local OpenCode config with hardcoded API keys
 .openCode/opencode.json
+package-lock.json
