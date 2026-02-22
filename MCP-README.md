@@ -23,6 +23,15 @@ This directory contains the Model Context Protocol (MCP) servers configuration f
 | **git** | DevOps / Version Control | Git repository operations | `pip install mcp-server-git` |
 | **time** | Utilities | Time data & timezone management | `pip install mcp-server-time` |
 
+### Agent prompt tools (Explore & Librarian)
+
+| Server | Category | Description | Install |
+|--------|----------|-------------|----------|
+| **ast-grep** | Code Search | Structural pattern matching (AST). Explore: `ast_grep`. | `brew install ast-grep` then `uvx --from git+https://github.com/ast-grep/ast-grep-mcp ast-grep-server` |
+| **context7** | Web / Search | Official docs lookup. Librarian: `context7`. Optional: `CONTEXT7_API_KEY`. | `npx -y @upstash/context7-mcp@latest` |
+| **grep-app** | Web / Search | GitHub code search. Librarian: `grep_app`. | `uvx grep-mcp` or `pip install grep-mcp` |
+| **web-search** | Web / Search | Free web search. Librarian: `websearch`. Multi-provider (DuckDuckGo, Bing, SearXNG), no API key. | `npx -y @zhafron/mcp-web-search` |
+
 ### Z.AI Servers (Pre-configured)
 
 | Server | Type | Description |
@@ -42,6 +51,17 @@ Stores entities and observations across sessions for persistent context.
 
 ### Sequential Thinking Server
 Configured to log thought processes (can be disabled by setting `DISABLE_THOUGHT_LOGGING: true`).
+
+### Similar tools (keep one)
+
+| Prompt tool | Provided by | Note |
+|-------------|-------------|------|
+| **ripgrep / grep** | **filesystem** (search files) | No separate grep MCP added; filesystem covers in-repo text search. In Cursor, the built-in Grep tool is also available. |
+| **lsp_symbols / lsp_find_references** | **Cursor:** user-jetbrains `get_symbol_info`. **OpenCode:** optional lsp-mcp (per-workspace, cargo). | Not added here; use IDE LSP in Cursor or add lsp-mcp if needed. |
+
+### API keys (optional but recommended)
+
+- **context7:** Get key at [context7.com/dashboard](https://context7.com/dashboard). Set `CONTEXT7_API_KEY` in the environment for higher rate limits.
 
 ## 📊 Discovery Platforms
 
@@ -66,6 +86,8 @@ All MCP servers are automatically available to your OpenCode AI assistant. The a
 - **Manage Git repositories** via the git server
 - **Query time data** via the time server
 - **Test MCP capabilities** via the everything server
+- **Explore agent:** structural search (ast-grep), text search (filesystem), symbol/references (IDE or lsp-mcp)
+- **Librarian agent:** docs (context7), GitHub search (grep-app), web search (web-search); fetch for URL content
 
 ## 🔒 Security Notes
 

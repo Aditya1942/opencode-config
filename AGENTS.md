@@ -34,13 +34,15 @@ No build/test/lint commands — config-only repo. Use `bun test` if adding tests
 |-------|-------|------|------|
 | `build` | (user-selected) | Primary agent, delegates complex tasks | primary |
 | `orchestrator` | (user-selected) | Plan → Confirm → Execute workflow | primary |
-| `explore` | GLM 4.7 Flash | File reads, grep, directory listing | subagent |
+| `explore` | Claude Haiku 4.5 | High-speed codebase mapping, contextual search, architectural mapping | subagent |
 | `explore-fallback` | GLM 5 Free | Fallback file explorer | subagent (hidden) |
 | `general` | GLM 4.7 | Code comprehension, multi-file analysis | subagent |
+| `librarian` | Claude Haiku 4.5 | Research: docs lookup, multi-repo/GitHub examples, library best practices | subagent |
+| `librarian-fallback` | GLM 5 Free | Fallback librarian (when librarian fails) | subagent (hidden) |
 | `transform` | MiniMax M2.5 Free | Renames, formatting, simple refactors | subagent (hidden) |
 | `validator` | GPT-5 Nano | Output validation, format checks | subagent (hidden) |
-| `executor` | GLM 4.7 | Primary code executor | subagent |
-| `executor-sonnet` | Claude Sonnet 4.6 | Fallback executor (when executor fails) | subagent |
+| `executor` | Claude Haiku 4.5 | Primary code executor | subagent |
+| `executor-fallback` | MiniMax M2.5 Free | Fallback executor (when executor fails) | subagent (hidden) |
 | `code-reviewer` | GLM 4.7 | Post-implementation review | subagent |
 
 Full routing details: load `team-agents` skill.

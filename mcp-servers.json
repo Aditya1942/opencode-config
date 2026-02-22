@@ -138,6 +138,67 @@
         "temporal queries"
       ],
       "repository": "https://github.com/modelcontextprotocol/servers/tree/main/src/time"
+    },
+    "ast-grep": {
+      "name": "ast-grep MCP Server",
+      "type": "local",
+      "description": "Structural code search using AST pattern matching. Used by Explore agent for find_code, find_code_by_rule, dump_syntax_tree.",
+      "category": "Code Search",
+      "language": "Python",
+      "install": "brew install ast-grep; uvx --from git+https://github.com/ast-grep/ast-grep-mcp ast-grep-server",
+      "command": ["uvx", "--from", "git+https://github.com/ast-grep/ast-grep-mcp", "ast-grep-server"],
+      "features": [
+        "find_code (structural pattern search)",
+        "find_code_by_rule (YAML rules)",
+        "dump_syntax_tree",
+        "test_match_code_rule"
+      ],
+      "repository": "https://github.com/ast-grep/ast-grep-mcp"
+    },
+    "context7": {
+      "name": "Context7 MCP Server",
+      "type": "local",
+      "description": "Up-to-date, version-specific library documentation for LLMs. Used by Librarian agent. Optional: set CONTEXT7_API_KEY for higher limits.",
+      "category": "Web / Search",
+      "language": "TypeScript",
+      "install": "npx -y @upstash/context7-mcp@latest",
+      "command": ["npx", "-y", "@upstash/context7-mcp@latest"],
+      "features": [
+        "resolve-library-id",
+        "get-library-docs",
+        "9,000+ libraries indexed"
+      ],
+      "repository": "https://github.com/upstash/context7"
+    },
+    "grep-app": {
+      "name": "Grep App MCP Server",
+      "type": "local",
+      "description": "Search public GitHub repositories. Used by Librarian agent for grep_app (searchCode / grep_query).",
+      "category": "Web / Search",
+      "language": "Python",
+      "install": "pip install grep-mcp or uvx grep-mcp",
+      "command": ["uvx", "grep-mcp"],
+      "features": [
+        "search GitHub repositories",
+        "filter by language, repo, path",
+        "file paths, line numbers, snippets"
+      ],
+      "repository": "https://github.com/galprz/grep-mcp"
+    },
+    "web-search": {
+      "name": "MCP Web Search (multi-provider)",
+      "type": "local",
+      "description": "Free web search for Librarian agent. Multi-provider (DuckDuckGo, Bing, SearXNG) with automatic fallback; no API key. Tools: search_web, fetch_url.",
+      "category": "Web / Search",
+      "language": "TypeScript",
+      "install": "npx -y @zhafron/mcp-web-search",
+      "command": ["npx", "-y", "@zhafron/mcp-web-search"],
+      "features": [
+        "search_web (DuckDuckGo, Bing, SearXNG)",
+        "fetch_url (content extraction)",
+        "no API key required"
+      ],
+      "repository": "https://github.com/tickernelz/mcp-web-search"
     }
   },
   "resources": {
