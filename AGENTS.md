@@ -129,6 +129,10 @@ Use the `skill` tool — never read SKILL.md files directly.
 | `security-guidance` | When editing files with security implications |
 | `frontend-design` | Building web components, pages, applications |
 
+## Config Change Checklist
+
+When adding, removing, or updating MCPs, skills, commands, agents, plugins, or models, follow the checklist in `docs/config-change-checklist.md` to update all files that track config state.
+
 ## Git Conventions
 
 - Small, frequent, atomic commits. Use worktrees for feature isolation.

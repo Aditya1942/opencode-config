@@ -22,7 +22,7 @@ The agent will fetch the installation document and execute every step to set up 
 
 | File | Purpose |
 |------|---------|
-| `opencode.json` | Models, agents, commands, custom providers |
+| `opencode.json` | Models, agents, commands, custom providers, MCP servers |
 | `AGENTS.md` | Agent instructions, coding standards, skill system docs |
 | `package.json` | Dependencies (`@opencode-ai/plugin`) |
 
@@ -38,16 +38,16 @@ A multi-agent system with a token-efficient orchestrator conductor:
 
 The `orchestrator` runs a mandatory 6-step workflow: (1) dispatch @metis for intent gate, (2) dispatch @prometheus-lite for planning, (3) dispatch @momus for plan review + user confirmation, (4) dispatch parallel execution via @executor/@explore/@librarian/@transform, (5) dispatch @validator + @code-reviewer for verification, (6) dispatch commit. **Orchestrator is a PURE DISPATCHER — it never does work directly.** See the `team-agents` skill for the full architecture spec.
 
-### 24 Skills
+### 21 Skills
 
 **Core Superpowers** (from [obra/superpowers](https://github.com/obra/superpowers)):
-brainstorming, writing-plans, executing-plans, test-driven-development, systematic-debugging, verification-before-completion, commit-and-push, using-git-worktrees, dispatching-parallel-agents, subagent-driven-development, requesting-code-review, receiving-code-review, finishing-a-development-branch, writing-skills, using-superpowers
+brainstorming, writing-plans, executing-plans, test-driven-development, systematic-debugging, verification-before-completion, using-git-worktrees, dispatching-parallel-agents, subagent-driven-development, requesting-code-review, receiving-code-review, finishing-a-development-branch, writing-skills, using-superpowers
 
 **Custom Skills** (claudepowers):
-code-review, explanatory-output, feature-dev, frontend-design, hookify, plugin-dev, security-guidance
+code-review, explanatory-output, frontend-design, readme-driven-code-understanding, security-guidance
 
-**Orchestration**:
-team-agents (multi-agent coding architecture with provider-aware routing, confidence system, and escalation logic)
+**Orchestration & Config:**
+team-agents, update-config
 
 ### Custom Commands
 
@@ -56,12 +56,12 @@ team-agents (multi-agent coding architecture with provider-aware routing, confid
 | `/brainstorm` | Invoke brainstorming skill before creative work |
 | `/write-plan` | Create detailed implementation plan |
 | `/execute-plan` | Execute plan in batches with review checkpoints |
-| `/update-superpowers` | Pull latest superpowers from git |
+| `/update-superpowers` | Pull latest superpowers and config from git |
 | `/antigravity-quota` | Check Antigravity API quota for all accounts |
 
 ---
 
-## Agents, tools & MCPs (full list)
+## Agents, Tools & MCPs (full list)
 
 ### Agents
 
@@ -92,36 +92,41 @@ Routing details: load the **team-agents** skill.
 | `/brainstorm` | Invoke brainstorming skill before creative work |
 | `/write-plan` | Create implementation plan with tasks |
 | `/execute-plan` | Execute plan in batches with checkpoints |
+| `/update-superpowers` | Pull latest superpowers and config from git |
 | `/antigravity-quota` | Check Antigravity API quota (plugin) |
 
 ### Skills
 
 | Collection | Skills |
 |------------|--------|
-| **superpowers** (symlinked) | brainstorming, writing-plans, executing-plans, test-driven-development, systematic-debugging, verification-before-completion, commit-and-push, using-git-worktrees, dispatching-parallel-agents, subagent-driven-development, requesting-code-review, receiving-code-review, finishing-a-development-branch, writing-skills, using-superpowers |
-| **claudepowers** | code-review, explanatory-output, feature-dev, frontend-design, hookify, plugin-dev, security-guidance |
+| **superpowers** (symlinked) | brainstorming, writing-plans, executing-plans, test-driven-development, systematic-debugging, verification-before-completion, using-git-worktrees, dispatching-parallel-agents, subagent-driven-development, requesting-code-review, receiving-code-review, finishing-a-development-branch, writing-skills, using-superpowers |
+| **claudepowers** | code-review, explanatory-output, frontend-design, readme-driven-code-understanding, security-guidance |
 | **Orchestration** | team-agents |
 | **Config** | update-config |
 
 Use the `skill` tool to load skills; never read `SKILL.md` directly.
 
-### MCP servers
+### MCP Servers (8)
 
 | Server | Category | Description | Key tools / features |
 |--------|----------|-------------|----------------------|
-| **everything** | Reference / Testing | Demo of MCP capabilities | echo, add numbers, progress, resources, prompts |
-| **filesystem** | File System | Secure file operations | read/write files, list dirs, search; allowed: `/Users/aditya` |
 | **memory** | Memory / Context | Persistent knowledge graph | entities, observations, cross-session memory |
 | **sequential-thinking** | Reasoning | Step-by-step reasoning | thought steps, revision, branching; optional logging |
-| **fetch** | Web / Search | Web content retrieval | fetch URL, HTML→markdown, pagination |
-| **git** | Version Control | Git operations | clone, status, commits, branches, PRs |
-| **time** | Utilities | Time data | current time, timezone, date arithmetic |
+| **time** | Utilities | Time data | current time, timezone conversion |
 | **ast-grep** | Code Search | Structural code search (AST) | find_code, find_code_by_rule, dump_syntax_tree; used by Explore |
 | **context7** | Web / Search | Library documentation | resolve-library-id, get-library-docs; used by Librarian |
 | **grep-app** | Web / Search | GitHub code search | searchCode, grep_query; used by Librarian |
-| **web-search** | Web / Search | Free web search (multi-provider) | search_web, fetch_url; no API key; used by Librarian |
+| **web-search** | Web / Search | Free web search + URL fetching | search_web, fetch_url; no API key; used by Librarian |
+| **cloudflare** | Infrastructure | Cloudflare management | Workers, KV, R2, D1, Durable Objects, Queues, AI, DNS |
 
-MCP config: `opencode.json` (connections), `mcp-servers.json` (catalog). See [MCP-README.md](MCP-README.md) for install and usage.
+MCP config: `opencode.json`.
+
+### Plugins
+
+| Plugin | Purpose |
+|--------|---------|
+| `superpowers.js` | Injects superpowers skill framework via system prompt transform |
+| `custom-hooks.js` | Context window monitor, tool output truncator, model fallback, preemptive compaction, rules injector |
 
 ---
 
@@ -165,6 +170,38 @@ cd ~/.config/opencode/superpowers && git pull
 ```
 
 Or inside OpenCode, run `/update-superpowers`.
+
+---
+
+## Directory Structure
+
+```
+~/.config/opencode/
+├── opencode.json               # Main config (models, agents, commands, providers, MCP)
+├── AGENTS.md                   # Agent instructions and coding standards
+├── package.json                # Dependencies (@opencode-ai/plugin)
+├── plugins/
+│   ├── superpowers.js          # Symlink → superpowers/.opencode/plugins/superpowers.js
+│   ├── custom-hooks.js         # Combined hooks plugin
+│   └── hooks/                  # Individual hook implementations
+├── skills/
+│   ├── superpowers/            # Symlink → superpowers/skills/ (15 core skills)
+│   ├── claudepowers/           # 5 custom domain-specific skills
+│   │   ├── code-review/
+│   │   ├── explanatory-output/
+│   │   ├── frontend-design/
+│   │   ├── readme-driven-code-understanding/
+│   │   └── security-guidance/
+│   ├── team-agents/            # Multi-agent routing skill
+│   └── update-config/          # Update superpowers and config skill
+├── .sisyphus/
+│   ├── plans/                  # Implementation plans (generated by prometheus-lite)
+│   └── drafts/                 # Draft plans and interview notes
+├── docs/                       # Guides and design docs
+├── .opencode/
+│   └── INSTALL.md              # Agent-executable installation guide
+└── superpowers/                # Cloned from github.com/obra/superpowers (gitignored)
+```
 
 ---
 

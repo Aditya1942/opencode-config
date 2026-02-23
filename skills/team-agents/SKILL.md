@@ -106,7 +106,7 @@ The orchestrator is a **PURE DISPATCHER** — it NEVER does work directly.
 - Load skills first: `team-agents`, `dispatching-parallel-agents`, `executing-plans`, `verification-before-completion`.
 - Decompose plan into microtasks.
 - Dispatch in parallel waves to: `@executor`, `@explore`, `@librarian`, `@transform`, `@general`.
-- Use MCPs freely: filesystem, git, ast-grep, web-search, fetch, context7.
+- Use MCPs freely: ast-grep, web-search, context7, grep-app, memory.
 
 ### Step 5: Verification Gates
 - After each wave: dispatch **@validator** + **@code-reviewer**.

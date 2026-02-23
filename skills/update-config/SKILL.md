@@ -5,17 +5,19 @@ description: Update superpowers skills and OpenCode config to latest version fro
 
 # Update Config
 
-Update both the local superpowers repository and fetch the latest configuration from the GitHub repository.
+Update the local superpowers repository, the opencode-config repository, and fetch the latest installation guide.
 
 ## When to Use
 
 Use this skill when you need to:
 - Update superpowers skills to the latest version
-- Fetch the latest OpenCode configuration from the remote repository
+- Update OpenCode configuration to the latest version
+- Fetch the latest installation guide from the remote repository
 - Synchronize your local setup with upstream changes
 
 ## Checklist
 
+- [ ] Run `git -C ~/.config/opencode pull` to update opencode-config
 - [ ] Run `git -C ~/.config/opencode/superpowers pull` to update superpowers
 - [ ] Fetch `https://raw.githubusercontent.com/Aditya1942/opencode-config/refs/heads/main/.opencode/INSTALL.md`
 - [ ] Report results including status and any changes
@@ -23,21 +25,35 @@ Use this skill when you need to:
 
 ## Commands
 
-Run the following commands to update both the superpowers repository and fetch the latest config:
+Run the following commands to update everything:
 
-1. **Update superpowers repository:**
+1. **Update opencode-config repository:**
+   ```bash
+   git -C ~/.config/opencode pull
+   ```
+
+2. **Update superpowers repository:**
    ```bash
    git -C ~/.config/opencode/superpowers pull
    ```
 
-2. **Fetch and display the latest INSTALL.md from the GitHub repo:**
+3. **Fetch and display the latest INSTALL.md from the GitHub repo:**
    ```bash
    curl -s https://raw.githubusercontent.com/Aditya1942/opencode-config/refs/heads/main/.opencode/INSTALL.md
    ```
 
+## Current Configuration
+
+After updating, verify these components are present:
+
+- **MCPs (8):** memory, sequential-thinking, time, ast-grep, context7, grep-app, web-search, cloudflare
+- **Claudepowers skills (5):** code-review, explanatory-output, frontend-design, readme-driven-code-understanding, security-guidance
+- **Other skills:** team-agents, update-config
+- **Superpowers skills (15):** symlinked from superpowers repo
+
 ## Output
 
 Report the result to the user, including:
-- Whether the superpowers repo was already up to date or what changed
+- Whether each repo was already up to date or what changed
 - A summary of the latest INSTALL.md content from the GitHub repository
 - Any recommended next steps based on the INSTALL.md content

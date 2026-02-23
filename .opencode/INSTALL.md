@@ -6,11 +6,11 @@ This document is designed for an AI agent to follow step-by-step to install this
 
 - **OpenCode configuration** with multi-model Antigravity provider support (Claude, Gemini)
 - **Superpowers skill framework** — 15 core workflow skills (TDD, debugging, planning, etc.)
-- **Custom skills** — 8 domain-specific skills (code review, frontend design, security, etc.)
+- **Custom skills** — 5 domain-specific skills (code review, frontend design, security, etc.)
 - **Orchestrator agent** — token-efficient conductor following mandatory 6-step workflow: Intent Gate → Plan → Review → Parallel Execute → Verify → Ship
 - **Planning agents** — prometheus-lite (strategic planner), metis (pre-planning consultant), momus (plan reviewer)
 - **Custom slash commands** (`/brainstorm`, `/write-plan`, `/execute-plan`, `/antigravity-quota`)
-- **MCP servers** — filesystem, git, memory, time, ast-grep, context7, grep-app, web-search, and more
+- **MCP servers** — memory, sequential-thinking, time, ast-grep, context7, grep-app, web-search, cloudflare
 
 ---
 
@@ -229,11 +229,10 @@ cd ~/.config/opencode/superpowers && git pull
 2. Verify MCP server packages are installed (some require npm/npx)
 3. Check `MCP-README.md` for server-specific installation instructions
 4. Common servers and their requirements:
-   - `filesystem`: No external dependencies
-   - `git`: Requires git to be installed
-   - `ast-grep`: Requires ast-grep CLI
+   - `ast-grep`: Requires ast-grep CLI (`brew install ast-grep`)
    - `context7`: No external dependencies
    - `web-search`: No external dependencies (uses DuckDuckGo/SearXNG)
+   - `cloudflare`: Requires Cloudflare account and API token
 
 ### Tool Mapping (for Skills Written for Claude Code)
 
@@ -270,13 +269,11 @@ When skills reference Claude Code tools, OpenCode uses these equivalents:
 │   └── superpowers.js          # Symlink → superpowers/.opencode/plugins/superpowers.js
 ├── skills/
 │   ├── superpowers/            # Symlink → superpowers/skills/ (15 core skills)
-│   ├── claudepowers/           # 8 custom domain-specific skills
+│   ├── claudepowers/           # 5 custom domain-specific skills
 │   │   ├── code-review/
 │   │   ├── explanatory-output/
-│   │   ├── feature-dev/
 │   │   ├── frontend-design/
-│   │   ├── hookify/
-│   │   ├── plugin-dev/
+│   │   ├── readme-driven-code-understanding/
 │   │   └── security-guidance/
 │   ├── team-agents/            # Multi-agent coding architecture skill
 │   │   └── SKILL.md
