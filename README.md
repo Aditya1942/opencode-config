@@ -28,15 +28,15 @@ The agent will fetch the installation document and execute every step to set up 
 
 ### Agent Architecture
 
-A multi-agent system with an intelligent orchestrator that routes tasks to optimal models:
+A multi-agent system with a token-efficient orchestrator conductor:
 
 | Agent | Model | Mode | Role |
 |-------|-------|------|------|
-| `build` (primary) | User-selected | build/plan | Default agent, delegates complex tasks to orchestrator |
-| `orchestrator` | User-selected | build/plan | Multi-agent coding orchestrator — decomposes tasks into microtasks, routes to optimal models, executes parallel agents, confidence-based escalation |
-| `code-reviewer` | Gemini 3 Pro (Antigravity) | subagent | Post-implementation review |
+| `build` (primary) | User-selected | build/plan | Default agent, routes complex tasks to orchestrator |
+| `orchestrator` | User-selected | build/plan | Token-efficient conductor — PURE DISPATCHER (never does work directly) |
+| `code-reviewer` | GLM 4.7 | subagent | Post-implementation review |
 
-The `orchestrator` agent owns all model routing decisions. It decomposes tasks into a dependency DAG, assesses complexity, dispatches to the right model tier (free → paid → Opus), validates with dual-mode confidence scoring, and enforces final correctness via Anthropic Claude Opus 4.6. See the `team-agents` skill for the full 19-section architecture spec.
+The `orchestrator` runs a mandatory 6-step workflow: (1) dispatch @metis for intent gate, (2) dispatch @prometheus-lite for planning, (3) dispatch @momus for plan review + user confirmation, (4) dispatch parallel execution via @executor/@explore/@librarian/@transform, (5) dispatch @validator + @code-reviewer for verification, (6) dispatch commit. **Orchestrator is a PURE DISPATCHER — it never does work directly.** See the `team-agents` skill for the full architecture spec.
 
 ### 24 Skills
 
@@ -58,6 +58,70 @@ team-agents (multi-agent coding architecture with provider-aware routing, confid
 | `/execute-plan` | Execute plan in batches with review checkpoints |
 | `/update-superpowers` | Pull latest superpowers from git |
 | `/antigravity-quota` | Check Antigravity API quota for all accounts |
+
+---
+
+## Agents, tools & MCPs (full list)
+
+### Agents
+
+| Agent | Model | Mode | Role |
+|-------|-------|------|------|
+| **build** | User-selected | primary | Default agent; delegates complex tasks to orchestrator |
+| **orchestrator** | User-selected | primary | Token-efficient conductor — PURE DISPATCHER (never does work directly) |
+| **explore** | Claude Haiku 4.5 | subagent | Codebase mapping, contextual search, LSP/ast_grep/ripgrep (read-only) |
+| **explore-fallback** | GLM 5 Free | subagent (hidden) | Fallback when explore fails |
+| **general** | GLM 4.7 | subagent | Code comprehension, multi-file analysis, dependency maps |
+| **librarian** | Claude Haiku 4.5 | subagent | Research: docs, multi-repo, GitHub examples, library best practices |
+| **librarian-fallback** | GLM 5 Free | subagent (hidden) | Fallback when librarian fails |
+| **transform** | MiniMax M2.5 Free | subagent (hidden) | Renames, formatting, simple refactors (no logic changes) |
+| **validator** | GPT-5 Nano | subagent (hidden) | Output validation, format checks, hallucination detection |
+| **executor** | Claude Haiku 4.5 | subagent | Implements microtasks from orchestrator; full tool access |
+| **executor-fallback** | MiniMax M2.5 Free | subagent (hidden) | Fallback when executor fails |
+| **code-reviewer** | GLM 4.7 | subagent | Post-implementation review vs plan and standards |
+| **prometheus-lite** | Claude Haiku 4.5 | subagent | Strategic planner; interview → Metis → plan in `.sisyphus/plans/` (no code) |
+| **metis** | Claude Haiku 4.5 | subagent (hidden) | Pre-planning consultant; intent classification, gap analysis (read-only) |
+| **momus** | Claude Haiku 4.5 | subagent (hidden) | Plan reviewer; executable plans, valid references (read-only) |
+
+Routing details: load the **team-agents** skill.
+
+### Commands (slash)
+
+| Command | Purpose |
+|---------|---------|
+| `/brainstorm` | Invoke brainstorming skill before creative work |
+| `/write-plan` | Create implementation plan with tasks |
+| `/execute-plan` | Execute plan in batches with checkpoints |
+| `/antigravity-quota` | Check Antigravity API quota (plugin) |
+
+### Skills
+
+| Collection | Skills |
+|------------|--------|
+| **superpowers** (symlinked) | brainstorming, writing-plans, executing-plans, test-driven-development, systematic-debugging, verification-before-completion, commit-and-push, using-git-worktrees, dispatching-parallel-agents, subagent-driven-development, requesting-code-review, receiving-code-review, finishing-a-development-branch, writing-skills, using-superpowers |
+| **claudepowers** | code-review, explanatory-output, feature-dev, frontend-design, hookify, plugin-dev, security-guidance |
+| **Orchestration** | team-agents |
+| **Config** | update-config |
+
+Use the `skill` tool to load skills; never read `SKILL.md` directly.
+
+### MCP servers
+
+| Server | Category | Description | Key tools / features |
+|--------|----------|-------------|----------------------|
+| **everything** | Reference / Testing | Demo of MCP capabilities | echo, add numbers, progress, resources, prompts |
+| **filesystem** | File System | Secure file operations | read/write files, list dirs, search; allowed: `/Users/aditya` |
+| **memory** | Memory / Context | Persistent knowledge graph | entities, observations, cross-session memory |
+| **sequential-thinking** | Reasoning | Step-by-step reasoning | thought steps, revision, branching; optional logging |
+| **fetch** | Web / Search | Web content retrieval | fetch URL, HTML→markdown, pagination |
+| **git** | Version Control | Git operations | clone, status, commits, branches, PRs |
+| **time** | Utilities | Time data | current time, timezone, date arithmetic |
+| **ast-grep** | Code Search | Structural code search (AST) | find_code, find_code_by_rule, dump_syntax_tree; used by Explore |
+| **context7** | Web / Search | Library documentation | resolve-library-id, get-library-docs; used by Librarian |
+| **grep-app** | Web / Search | GitHub code search | searchCode, grep_query; used by Librarian |
+| **web-search** | Web / Search | Free web search (multi-provider) | search_web, fetch_url; no API key; used by Librarian |
+
+MCP config: `opencode.json` (connections), `mcp-servers.json` (catalog). See [MCP-README.md](MCP-README.md) for install and usage.
 
 ---
 

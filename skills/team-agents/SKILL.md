@@ -1,91 +1,200 @@
 ---
 name: team-agents
-description: "Use when receiving any task that involves sub-tasks like file reading, code comprehension, searching, or simple code generation - delegates micro-work to specialized models based on task type"
+description: "Use when delegating work to subagents: routing by task type (explore, librarian, general, executor, prometheus-lite), fallback chains, and orchestrator's 6-step mandatory workflow"
 ---
 
 # Multi-Agent Routing
 
-## Models & Roles
+## Overview
 
-| Model | Role | Subagent Type | Fallback Chain |
-|-------|------|---------------|----------------|
-| GLM 4.7 Flash | File Explorer (primary) | `explore` | explore-fallback → GPT-5 Nano → Opus 4.6 |
-| GLM 5 Free | File Explorer (fallback) | `explore-fallback` | GPT-5 Nano → Opus 4.6 |
-| GLM 4.7 | Code Comprehension | `general` | Sonnet 4.6 → GLM 4.7 FlashX → Opus 4.6 |
-| MiniMax M2.5 Free | Lightweight Transform | `transform` | GLM 4.7 → Sonnet 4.6 → Opus 4.6 |
-| Big Pickle | Pattern Analysis | `explore` | GLM 4.7 → GLM 4.7 FlashX → Opus 4.6 |
-| GPT-5 Nano | Validation | `validator` | Sonnet 4.6 → GLM 4.7 Flash → Opus 4.6 |
-| GLM 4.7 | Primary Code Executor | `executor` | Sonnet 4.6 → Opus 4.6 |
-| Claude Sonnet 4.6 | Fallback Code Executor | `executor-sonnet` | Opus 4.6 |
-| Claude Opus 4.6 | Final Authority / Security | — | (final fallback for all) |
+This skill defines how to route tasks to the right subagent, the orchestrator's mandatory 6-step workflow, and the planning agents (prometheus-lite, metis, momus). Load it whenever a task involves decomposition, research, exploration, or execution by specialized agents.
 
-**Priority order:** explore/general (Tier 0/1) → executor (GLM 4.7) → executor-sonnet (Sonnet 4.6) → Opus 4.6 (Tier 2, final)
+## Agents & Roles
+
+| Agent | Model | Role | Fallback |
+|-------|-------|------|----------|
+| **build** | User-selected | Primary agent; routes complex work to orchestrator | — |
+| **orchestrator** | User-selected | Token-efficient conductor — Intent Gate → Plan → Review → Parallel Execute → Verify → Ship | — |
+| **explore** | Claude Haiku 4.5 | Codebase mapping, search, LSP/ast_grep (read-only) | explore-fallback |
+| **explore-fallback** | GLM 5 Free | Fallback explorer | — |
+| **general** | GLM 4.7 | Code comprehension, multi-file analysis, dependency maps | — |
+| **librarian** | Claude Haiku 4.5 | Research: docs, multi-repo, GitHub, library best practices | librarian-fallback |
+| **librarian-fallback** | GLM 5 Free | Fallback librarian | — |
+| **transform** | MiniMax M2.5 Free | Renames, formatting, simple refactors (no logic change) | — |
+| **validator** | GPT-5 Nano | Output validation, format checks, hallucination detection | — |
+| **executor** | Claude Haiku 4.5 | Implements microtasks; full tool access | executor-fallback |
+| **executor-fallback** | MiniMax M2.5 Free | Fallback executor | — |
+| **code-reviewer** | GLM 4.7 | Post-implementation review vs plan and standards | — |
+| **prometheus-lite** | Claude Haiku 4.5 | Strategic planner; plans only in `.sisyphus/plans/` (no code) | — |
+| **metis** | Claude Haiku 4.5 | Pre-planning consultant; intent + gap analysis (read-only) | — |
+| **momus** | Claude Haiku 4.5 | Plan reviewer; executable plans, valid refs (read-only) | — |
+
+## When to Use Orchestrator
+
+Use the **orchestrator** for any multi-step implementation task. The orchestrator internally calls prometheus-lite, metis, and momus as steps in its mandatory workflow — they are not alternatives.
+
+| Scenario | Route to |
+|----------|----------|
+| Multi-step implementation | **orchestrator** — runs full 6-step workflow |
+| User explicitly wants a written plan only | **prometheus-lite** directly — interview → @metis → plan file → optional @momus |
+| Research / docs / GitHub examples | **librarian** (fallback: librarian-fallback) |
+| Codebase search, symbol refs, structure | **explore** (fallback: explore-fallback) |
+| Understand code, data flow, dependencies | **general** |
+| Mechanical renames, format, boilerplate | **transform** |
+| Validate another agent's output | **validator** |
+| Implement a single microtask from a plan | **executor** (fallback: executor-fallback) |
+| Review completed work vs plan | **code-reviewer** |
 
 ## Task Routing
 
 | Task Type | Primary Agent | Fallback |
 |-----------|---------------|----------|
-| file_read | GLM 4.7 Flash (`explore`) | GLM 5 Free → GPT-5 Nano → Opus 4.6 |
-| search | GLM 4.7 Flash (`explore`) | GLM 5 Free → GPT-5 Nano → Opus 4.6 |
-| comprehend | GLM 4.7 (`general`) | Sonnet 4.6 → GLM 4.7 FlashX → Opus 4.6 |
-| transform | MiniMax M2.5 Free | GLM 4.7 → Sonnet 4.6 → Opus 4.6 |
-| pattern_scan | Big Pickle | GLM 4.7 → GLM 4.7 FlashX → Opus 4.6 |
-| validate | GPT-5 Nano | Sonnet 4.6 → GLM 4.7 Flash → Opus 4.6 |
-| generate_code | GLM 4.7 (`executor`) | Sonnet 4.6 → Opus 4.6 |
-| write_tests | GLM 4.7 (`executor`) | Sonnet 4.6 → Opus 4.6 |
-| code_review | GLM 4.7 (`executor`) | Sonnet 4.6 → Opus 4.6 |
-| refactor | GLM 4.7 (`executor`) | Sonnet 4.6 → Opus 4.6 |
-| deep_analyze | GLM 4.7 (`executor`) | Sonnet 4.6 → Opus 4.6 |
-| security | Claude Opus 4.6 | — |
-| complex_logic | Claude Opus 4.6 | — |
-| architecture | Claude Opus 4.6 | — |
+| file_read, search, pattern_scan | explore | explore-fallback |
+| comprehend, dependency_map | general | — |
+| research, docs, GitHub examples | librarian | librarian-fallback |
+| transform, rename, format | transform | — |
+| validate_output | validator | — |
+| generate_code, write_tests, refactor | executor | executor-fallback |
+| code_review (post-implementation) | code-reviewer | — |
+| create_work_plan (plan only) | prometheus-lite | — (calls metis then optional momus) |
+| gap_analysis_before_plan | metis | — |
+| review_plan_file | momus | — |
+| multi_step_implementation | orchestrator | — (runs full 6-step workflow) |
 
-## Confidence Thresholds
+## Orchestrator Mandatory Workflow (6 Steps — Never Skip)
+
+The orchestrator is a **PURE DISPATCHER** — it NEVER does work directly.
+
+### IRON LAW: ALL WORK GOES TO SUBAGENTS
+
+| Task Type | Orchestrator Does This? | Dispatch To |
+|-----------|------------------------|-------------|
+| Read files | ❌ NEVER | @explore |
+| Search codebase | ❌ NEVER | @explore |
+| Research docs/GitHub | ❌ NEVER | @librarian |
+| Write/edit code | ❌ NEVER | @executor |
+| Analyze code | ❌ NEVER | @general |
+| Transform/rename | ❌ NEVER | @transform |
+| Validate output | ❌ NEVER | @validator |
+| Review code | ❌ NEVER | @code-reviewer |
+| Analyze intent/gaps | ❌ NEVER | @metis |
+| Create plans | ❌ NEVER | @prometheus-lite |
+| Review plans | ❌ NEVER | @momus |
+| Run tests/lint/build | ❌ NEVER | @executor |
+| Git operations | ❌ NEVER | @executor |
+
+**Orchestrator's ONLY actions:**
+1. Dispatch subagents via Task tool
+2. Synthesize their results
+3. Update todo list
+4. Present summaries to user
+5. Ask clarifying questions (research for clarification → @librarian/@explore)
+
+### Step 1: Intent Gate
+- Call **@metis** immediately for hidden intents, gaps, risks, and clarifying directives.
+
+### Step 2: Planning
+- Call **@prometheus-lite** to generate a full executable plan in `.sisyphus/plans/`.
+
+### Step 3: Plan Review
+- Call **@momus** to validate executability and references.
+- Present concise summary (4-6 bullets) to user.
+- Ask: "Plan ready. Reply **GO** or give changes."
+- **Do NOT proceed until user says GO / APPROVE.**
+
+### Step 4: Execution (only after user GO)
+- Load skills first: `team-agents`, `dispatching-parallel-agents`, `executing-plans`, `verification-before-completion`.
+- Decompose plan into microtasks.
+- Dispatch in parallel waves to: `@executor`, `@explore`, `@librarian`, `@transform`, `@general`.
+- Use MCPs freely: filesystem, git, ast-grep, web-search, fetch, context7.
+
+### Step 5: Verification Gates
+- After each wave: dispatch **@validator** + **@code-reviewer**.
+- Dispatch **@executor** to run tests/lint/build.
+- Re-dispatch fixes if needed.
+
+### Step 6: Completion
+- Dispatch **@code-reviewer** for final pass.
+- Dispatch **@executor** for git commit (or use `commit-and-push` skill).
+- Summarize results and mark done.
+
+## Planning Workflow (Prometheus-Lite — standalone)
+
+Use this only when the user explicitly wants a written plan without immediate execution.
+
+1. Interview mode: classify intent, ask clarifying questions, optionally launch explore/librarian.
+2. Call **metis** for gap analysis (mandatory before generating the plan).
+3. Generate one plan at `.sisyphus/plans/{kebab-case-name}.md`.
+4. Optionally ask user if they want **momus** to review the plan.
+5. Tell user: "Plan ready. Run `/start-work {name}` to execute."
+
+## Confidence & Escalation
 
 | Confidence | Action |
-|-----------|--------|
-| >= 0.80 | Accept result |
-| 0.65–0.79 | Accept with review — verify key aspects yourself |
-| 0.50–0.64 | Retry once with next model in fallback chain |
-| < 0.50 | Reject — escalate to Claude Opus 4.6 immediately |
+|------------|--------|
+| ≥ 0.80 | Accept result |
+| 0.65–0.79 | Accept with review; verify key aspects |
+| 0.50–0.64 | Retry once with fallback agent in chain |
+| < 0.50 | Reject; escalate to build / user-selected model or ask user |
 
-## Direct-to-Opus Rules
+When in doubt, move to the next agent in the fallback chain (explore → explore-fallback; librarian → librarian-fallback; executor → executor-fallback). Do not retry the same agent twice.
 
-Bypass routing and go straight to Claude Opus 4.6 for:
-- Security audit (always)
-- Async/concurrency logic where correctness is critical
-- Auth/authorization changes
-- Multi-file changes >5 files
-- Confidence <0.50 from any model
-- Validator returns is_valid: false twice
-- Complex debugging requiring 10+ tool calls
-- Architectural decisions or system design
+## Direct Escalation (Bypass Routing)
 
-**This rule is non-negotiable.**
+Route to **build** (or user) for:
+- Security-sensitive changes (auth, permissions, secrets)
+- Architectural or system-design decisions
+- Multi-file changes with high blast radius
+- Validator returns invalid twice
+- Confidence < 0.50 after fallback
+
+## Key Rules
+
+- **IRON LAW: Orchestrator is a PURE DISPATCHER. ALL work goes to subagents.**
+- Orchestrator NEVER uses Read, Write, Edit, Bash, grep, glob, or any tool that does work.
+- Maximize parallelism (use `dispatching-parallel-agents` skill).
+- Skills-first evaluation before any dispatch.
+- Track todos and checkpoints in `.sisyphus/`.
+- Keep every response concise (bullets + clear next actions).
+- Orchestrator starts every response with **[ORCHESTRATOR]**.
 
 ## Anti-Patterns
 
 | Anti-Pattern | Fix |
-|-------------|-----|
-| Skipping explore/general | Always use explore (GLM 4.7 Flash) and general (GLM 4.7) first |
-| Sonnet as Primary Executor | executor (GLM 4.7) is primary; executor-sonnet is fallback only |
-| Wrong Specialist | Match task type to model role (see Task Routing) |
-| Serial Collapse | Dispatch independent tasks simultaneously |
-| Skipping Fallback | Move to next model in chain immediately on failure |
-| Opus for Everything | Use Sonnet 4.6 for general work, Opus for security/complex |
-| No Validation | Run GPT-5 Nano validator on critical outputs |
-| Context-Free Prompts | Write self-contained prompts with explicit file paths |
-| Skipping Security | Security = Opus. Always. |
-| Ignoring Contradictions | Flag conflict, dispatch tiebreaker |
+|--------------|-----|
+| **Orchestrator using Read/Write/Edit/Bash directly** | VIOLATION — Orchestrator is a pure dispatcher. ALL work goes to subagents. |
+| **Orchestrator reading files** | Dispatch to @explore for file reads |
+| **Orchestrator searching codebase** | Dispatch to @explore for search |
+| **Orchestrator running tests/lint** | Dispatch to @executor for test execution |
+| **Orchestrator doing git operations** | Dispatch to @executor for git |
+| Skipping metis intent gate | Orchestrator must dispatch @metis as step 1 — always |
+| Skipping prometheus-lite planning | Orchestrator must dispatch @prometheus-lite as step 2 — always |
+| Skipping momus plan review | Orchestrator must dispatch @momus as step 3 — always |
+| Executing without user GO | Orchestrator must wait for explicit user confirmation before step 4 |
+| Executing without loading skills | Load team-agents, dispatching-parallel-agents, executing-plans, verification-before-completion first |
+| Orchestrator writing code | Orchestrator is a conductor — dispatch to @executor for code |
+| Prometheus writing code | Prometheus-lite only creates/edits markdown in `.sisyphus/plans/` and `.sisyphus/drafts/` |
+| Skipping verification gates | After each execution wave, dispatch @validator + @code-reviewer |
+| Serial collapse | Dispatch independent tasks in parallel |
+| Ignoring fallbacks | On failure or low confidence, use explore-fallback, librarian-fallback, or executor-fallback |
+| Using executor for research | Use librarian for docs and examples |
+| Vague prompts to subagents | Include explicit paths and scope when dispatching |
 
 ## Quality Checklist
 
+- **Did orchestrator ONLY dispatch subagents? No direct tool use?**
+- Did orchestrator run all 6 mandatory steps?
+- Was @metis dispatched before planning?
+- Was @prometheus-lite plan generated in `.sisyphus/plans/`?
+- Was @momus dispatched to review the plan?
+- Did user confirm with GO before execution started?
+- Were skills loaded before dispatching?
 - Did all dispatched agents return results?
-- Do results from different agents agree?
-- Are all confidence scores >=0.65 (or escalated)?
-- Are all file modifications declared? No hallucinated imports?
-- Has the synthesis been coherent, not just concatenated?
+- Do results agree where multiple agents touched the same concern?
+- Are confidence scores ≥ 0.65 or escalated?
+- Are file modifications declared? No hallucinated imports?
+- Were verification gates (@validator + @code-reviewer) dispatched after each wave?
 
 ## Failure Recovery
 
-**When to trigger fallback:** Model returns empty/wrong/vague output, confidence <0.50, malformed JSON, or provider error. Never retry the same model twice — move to the next in the fallback chain.
+**Trigger fallback when:** agent returns empty/wrong/vague output, confidence < 0.50, malformed response, or provider error. Move to the next agent in the chain; do not retry the same agent twice.
