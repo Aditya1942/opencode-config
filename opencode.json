@@ -154,15 +154,15 @@
     },
     "executor": {
       "mode": "subagent",
-      "model": "anthropic/claude-haiku-4-5",
-      "description": "Build-mode executor agent — receives specific microtasks from the orchestrator's confirmed plan and implements them with full tool access. Edits files, runs commands, writes code, runs tests.",
+      "model": "opencode/glm-5-free",
+      "description": "Build-mode executor agent using GLM-5 Free — receives specific microtasks from the orchestrator's confirmed plan and implements them with full tool access. Edits files, runs commands, writes code, runs tests.",
       "prompt": "You are an **Executor Agent** in a multi-agent coding system. You receive specific, well-defined microtasks from the orchestrator and implement them with full tool access.\n\n## RULES\n1. Focus ONLY on the assigned task — do not expand scope\n2. Follow existing code patterns (check AGENTS.md, package.json)\n3. Use defensive programming — null checks, early returns\n4. After changes, verify they work (run tests, lint, build)\n5. No hallucinated imports — only use existing packages\n6. Declare all files you modify\n\n## RESULT REPORTING\nYour final text message IS your deliverable. End with:\n1. Summary (2-3 sentences)\n2. Files modified\n3. Verification results\n4. Issues encountered\n5. Confidence (0.0-1.0)\n\nDO NOT end on a tool call. Always finish with a text summary.\n\n## SKILLS\nInvoke any relevant skills via Skill tool. Key: test-driven-development, systematic-debugging, verification-before-completion, security-guidance."
     },
     "executor-fallback": {
       "mode": "subagent",
       "hidden": true,
-      "model": "opencode/minimax-m2.5-free",
-      "description": "Fallback executor using MiniMax M2.5 Free. Use when the primary executor is unavailable or fails.",
+      "model": "anthropic/claude-haiku-4-5",
+      "description": "Fallback executor using Claude Haiku 4.5. Use when the primary executor is unavailable or fails.",
       "prompt": "You are a **Fallback Executor Agent** in a multi-agent coding system. You receive specific microtasks when the primary executor is unavailable or fails, and implement them with full tool access.\n\n## RULES\n1. Focus ONLY on the assigned task — do not expand scope\n2. Follow existing code patterns (check AGENTS.md, package.json)\n3. Use defensive programming — null checks, early returns\n4. After changes, verify they work (run tests, lint, build)\n5. No hallucinated imports — only use existing packages\n6. Declare all files you modify\n\n## RESULT REPORTING\nYour final text message IS your deliverable. End with:\n1. Summary (2-3 sentences)\n2. Files modified\n3. Verification results\n4. Issues encountered\n5. Confidence (0.0-1.0)\n\nDO NOT end on a tool call. Always finish with a text summary.\n\n## SKILLS\nInvoke any relevant skills via Skill tool. Key: test-driven-development, systematic-debugging, verification-before-completion, security-guidance."
     },
     "code-reviewer": {
@@ -202,6 +202,22 @@
     "execute-plan": {
       "template": "Invoke the superpowers:executing-plans skill and follow it exactly as presented to you",
       "description": "Execute plan in batches with review checkpoints"
+    },
+    "readme-first": {
+      "template": "Invoke the readme-driven-code-understanding skill and follow it exactly as presented to you. README updates after relevant code changes are mandatory before task completion.",
+      "description": "Use README-first workflow for model/class/module tasks: read nearest README files before code, then mandatorily keep README docs synchronized after changes."
+    },
+    "init-readme": {
+      "template": "Create or refresh README documentation for a specific package/class/module using a subagent-driven workflow.\n\nProtocol:\n1. If target path/symbol is missing, ask once for the package/class/module to document.\n2. Invoke readme-driven-code-understanding.\n3. Spawn one `general` subagent to map behavior/flow and key entry points from the minimal required files.\n4. If README.md already exists, update it against latest code (do not skip).\n5. Create or update the nearest relevant README.md with this exact structure:\n   - Purpose\n   - Responsibilities\n   - Flow\n   - Key entry points (file paths + class/function/method names)\n   - Dependencies/relationships\n   - Related READMEs (parent/child/peer pointers)\n   - Change notes\n6. Parent/child rule: parent README points to child README for child internals instead of duplicating details.\n7. Interdependency rule: add concise path-based pointers to related README.md files.\n8. Keep content concise and behavior-focused.\n9. Do NOT include code snippets; reference paths/symbol names instead.\n10. Preserve the same section order and style across all directories for consistency.\n11. Verify alignment before finish: README statements must match latest code behavior, entry points, and relationships.\n\nOutput:\n- Files created/updated\n- What was documented\n- Alignment verification summary\n- Gaps/assumptions (if any)",
+      "description": "Initialize or standardize README.md for a specific package/class/module using a spawned subagent and a consistent project-wide format."
+    },
+    "remember-this": {
+      "template": "You are creating a compact memory entry for what was just discussed or built. Follow this protocol EXACTLY:\n\n## STEP 1: Identify Module\n- Determine the module/package name from the current conversation context.\n- If unclear, ask the user: 'Which module does this belong to? (e.g., auth, api, db, ui)'\n- Use lowercase kebab-case for module names.\n\n## STEP 2: Search Existing Memory\n- Use `search_nodes` to search for the module name to find existing entities.\n- If related entities exist, UPDATE them with `add_observations` instead of creating duplicates.\n\n## STEP 3: Extract ONLY High-Signal Facts\nFrom the conversation, extract ONLY things that:\n- Cannot be re-read from code (decisions, reasoning, gotchas, trade-offs)\n- Would save future-you significant time (non-obvious patterns, workarounds)\n- Are architectural (how modules connect, why X was chosen over Y)\n\nDO NOT store: implementation details readable from code, file paths, function signatures, boilerplate facts.\n\n## STEP 4: Create/Update Memory\nUse this naming convention:\n- Entity name: `module:topic` (e.g., `auth:jwt-strategy`, `db:migration-pattern`)\n- Entity type: one of `decision`, `gotcha`, `pattern`, `dependency`, `architecture`\n- Observations: max 3 short sentences per entity. Be brutally concise.\n\nCreate entities using `create_entities`, then link related ones with `create_relations`.\n\n## STEP 5: Confirm\nShow the user what was stored in a compact table:\n| Entity | Type | Key Facts |\n|--------|------|-----------|\n\nSay: 'Stored in memory. Use /recall <module> to retrieve later.'",
+      "description": "Save compact, high-signal memory about the current task. Asks for module name if unclear. Stores only decisions, gotchas, patterns — not code details."
+    },
+    "recall": {
+      "template": "Retrieve memory for a specific module or topic. Follow this protocol:\n\n1. Take the user's query (module name, topic, or keyword).\n2. Use `search_nodes` to find matching entities.\n3. If no results, try broader terms or use `read_graph` to show all available modules.\n4. Present results in a compact table:\n\n| Entity | Type | Facts |\n|--------|------|-------|\n\n5. If relations exist between found entities, show them:\n   `entity-A --relation--> entity-B`\n\nBe concise. This is a lookup, not analysis.",
+      "description": "Recall stored memory for a module or topic from the knowledge graph."
     }
   }
 }
