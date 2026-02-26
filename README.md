@@ -70,18 +70,18 @@ team-agents, update-config
 | **build** | User-selected | primary | Default agent; delegates complex tasks to orchestrator |
 | **orchestrator** | User-selected | primary | Token-efficient conductor — PURE DISPATCHER (never does work directly) |
 | **explore** | Claude Haiku 4.5 | subagent | Codebase mapping, contextual search, LSP/ast_grep/ripgrep (read-only) |
-| **explore-fallback** | GLM 5 Free | subagent (hidden) | Fallback when explore fails |
+| **explore-fallback** | MiniMax M2.5 Free | subagent (hidden) | Fallback when explore fails |
 | **general** | GLM 4.7 | subagent | Code comprehension, multi-file analysis, dependency maps |
-| **librarian** | Claude Haiku 4.5 | subagent | Research: docs, multi-repo, GitHub examples, library best practices |
-| **librarian-fallback** | GLM 5 Free | subagent (hidden) | Fallback when librarian fails |
-| **transform** | MiniMax M2.5 Free | subagent (hidden) | Renames, formatting, simple refactors (no logic changes) |
+| **librarian** | GLM 4.7 Flash | subagent | Research: docs, multi-repo, GitHub examples, library best practices |
+| **librarian-fallback** | Claude Haiku 4.5 | subagent (hidden) | Fallback when librarian fails |
+| **transform** | GLM 4.7 Flash | subagent (hidden) | Renames, formatting, simple refactors (no logic changes) |
 | **validator** | GPT-5 Nano | subagent (hidden) | Output validation, format checks, hallucination detection |
-| **executor** | Claude Haiku 4.5 | subagent | Implements microtasks from orchestrator; full tool access |
-| **executor-fallback** | MiniMax M2.5 Free | subagent (hidden) | Fallback when executor fails |
+| **executor** | GLM 4.7 Flash | subagent | Implements microtasks from orchestrator; full tool access |
+| **executor-fallback** | Claude Haiku 4.5 | subagent (hidden) | Fallback when executor fails |
 | **code-reviewer** | GLM 4.7 | subagent | Post-implementation review vs plan and standards |
 | **prometheus-lite** | Claude Haiku 4.5 | subagent | Strategic planner; interview → Metis → plan in `.sisyphus/plans/` (no code) |
-| **metis** | Claude Haiku 4.5 | subagent (hidden) | Pre-planning consultant; intent classification, gap analysis (read-only) |
-| **momus** | Claude Haiku 4.5 | subagent (hidden) | Plan reviewer; executable plans, valid references (read-only) |
+| **metis** | GLM 4.7 Flash | subagent (hidden) | Pre-planning consultant; intent classification, gap analysis (read-only) |
+| **momus** | GLM 4.7 Flash | subagent (hidden) | Plan reviewer; executable plans, valid references (read-only) |
 
 Routing details: load the **team-agents** skill.
 

@@ -16,18 +16,18 @@ This skill defines how to route tasks to the right subagent, the orchestrator's 
 | **build** | User-selected | Primary agent; routes complex work to orchestrator | — |
 | **orchestrator** | User-selected | Token-efficient conductor — Intent Gate → Plan → Review → Parallel Execute → Verify → Ship | — |
 | **explore** | Claude Haiku 4.5 | Codebase mapping, search, LSP/ast_grep (read-only) | explore-fallback |
-| **explore-fallback** | GLM 5 Free | Fallback explorer | — |
+| **explore-fallback** | MiniMax M2.5 Free | Fallback explorer | — |
 | **general** | GLM 4.7 | Code comprehension, multi-file analysis, dependency maps | — |
-| **librarian** | Claude Haiku 4.5 | Research: docs, multi-repo, GitHub, library best practices | librarian-fallback |
-| **librarian-fallback** | GLM 5 Free | Fallback librarian | — |
-| **transform** | MiniMax M2.5 Free | Renames, formatting, simple refactors (no logic change) | — |
+| **librarian** | GLM 4.7 Flash | Research: docs, multi-repo, GitHub, library best practices | librarian-fallback |
+| **librarian-fallback** | Claude Haiku 4.5 | Fallback librarian | — |
+| **transform** | GLM 4.7 Flash | Renames, formatting, simple refactors (no logic change) | — |
 | **validator** | GPT-5 Nano | Output validation, format checks, hallucination detection | — |
-| **executor** | Claude Haiku 4.5 | Implements microtasks; full tool access | executor-fallback |
-| **executor-fallback** | MiniMax M2.5 Free | Fallback executor | — |
+| **executor** | GLM 4.7 Flash | Implements microtasks; full tool access | executor-fallback |
+| **executor-fallback** | Claude Haiku 4.5 | Fallback executor | — |
 | **code-reviewer** | GLM 4.7 | Post-implementation review vs plan and standards | — |
 | **prometheus-lite** | Claude Haiku 4.5 | Strategic planner; plans only in `.sisyphus/plans/` (no code) | — |
-| **metis** | Claude Haiku 4.5 | Pre-planning consultant; intent + gap analysis (read-only) | — |
-| **momus** | Claude Haiku 4.5 | Plan reviewer; executable plans, valid refs (read-only) | — |
+| **metis** | GLM 4.7 Flash | Pre-planning consultant; intent + gap analysis (read-only) | — |
+| **momus** | GLM 4.7 Flash | Plan reviewer; executable plans, valid refs (read-only) | — |
 
 ## When to Use Orchestrator
 

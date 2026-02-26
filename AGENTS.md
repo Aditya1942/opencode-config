@@ -89,22 +89,26 @@ the `claude` CLI installed and local dev marketplace enabled in settings.
 
 ## Agent Hierarchy
 
-| Agent | Model | Role |
-|-------|-------|------|
-| `build` | (user-selected) | Primary agent, delegates complex tasks |
-| `orchestrator` | (user-selected) | Token-efficient conductor — PURE DISPATCHER |
-| `explore` | Claude Haiku 4.5 | Read-only codebase mapping, search, architecture |
-| `general` | GLM 4.7 | Code comprehension, multi-file analysis |
-| `librarian` | Claude Haiku 4.5 | Research: docs, GitHub examples, library best practices |
-| `executor` | Claude Haiku 4.5 | Implements microtasks — edits files, runs commands |
-| `transform` | MiniMax M2.5 Free | Mechanical renames, reformatting, simple refactors |
-| `validator` | GPT-5 Nano | Output validation, format/schema checks |
-| `code-reviewer` | GLM 4.7 | Post-implementation review against plan + standards |
-| `prometheus-lite` | (user-selected) | Creates plans in `.sisyphus/plans/` — never writes code |
-| `metis` | Claude Haiku 4.5 | Pre-planning gap analysis (hidden) |
-| `momus` | Claude Haiku 4.5 | Plan review — verifies executability (hidden) |
+| Agent | Primary Model | Fallback Model | Role |
+|-------|---------------|----------------|------|
+| `build` | (user-selected) | - | Primary agent, delegates complex tasks |
+| `orchestrator` | (user-selected) | - | Token-efficient conductor — PURE DISPATCHER |
+| `explore` | Claude Haiku 4.5 | MiniMax M2.5 Free | Read-only codebase mapping, search, architecture |
+| `explore-fallback` | MiniMax M2.5 Free | - | Fallback explorer (hidden) |
+| `general` | GLM 4.7 | Claude Sonnet 4.6 | Code comprehension, multi-file analysis |
+| `librarian` | GLM 4.7 Flash | Claude Haiku 4.5 | Research: docs, GitHub examples, library best practices |
+| `librarian-fallback` | Claude Haiku 4.5 | - | Fallback librarian (hidden) |
+| `executor` | GLM 4.7 Flash | Claude Sonnet 4.6 | Implements microtasks — edits files, runs commands |
+| `executor-fallback` | Claude Haiku 4.5 | - | Fallback executor (hidden) |
+| `transform` | GLM 4.7 Flash | MiniMax M2.5 Free | Mechanical renames, reformatting, simple refactors |
+| `validator` | GPT-5 Nano | Claude Haiku 4.5 | Output validation, format/schema checks |
+| `code-reviewer` | GLM 4.7 | Claude Opus 4.6 | Post-implementation review against plan + standards |
+| `prometheus-lite` | (user-selected) | - | Creates plans in `.sisyphus/plans/` — never writes code |
+| `metis` | GLM 4.7 Flash | Claude Haiku 4.5 | Pre-planning gap analysis (hidden) |
+| `momus` | GLM 4.7 Flash | Claude Haiku 4.5 | Plan review — verifies executability (hidden) |
 
-Fallback agents: `explore-fallback`, `librarian-fallback`, `executor-fallback` (GLM 5 Free / MiniMax M2.5 Free).
+**Primary models**: All subagents use zai-coding-plan models (GLM 4.7 or GLM 4.7 Flash) except `explore` (speed-critical) and `validator` (optimized).
+**Fallbacks**: All fallbacks use free models (MiniMax M2.5 Free, GPT-5 Nano) or Anthropic models (Haiku 4.5, Sonnet 4.6, Opus 4.6).
 Full routing details: load `team-agents` skill.
 
 ## Skills

@@ -14,11 +14,12 @@ The agent system has three moving parts:
 
 ```
 opencode.json           Task tool               Agent execution
-┌──────────────┐        ┌──────────────┐        ┌──────────────┐
-│ "explore": {  │        │ subagent_type │        │ Runs with    │
-│   "model":    │───────▶│  = "explore"  │───────▶│ glm-5-free   │
-│   "opencode/  │        └──────────────┘        └──────────────┘
-│    glm-5-free"│
+┌──────────────┐        ┌──────────────┐        ┌──────────────────┐
+│ "explore": {  │        │ subagent_type │        │ Runs with       │
+│   "model":    │───────▶│  = "explore"  │───────▶│ claude-haiku-4-5│
+│   "anthropic/ │        └──────────────┘        └──────────────────┘
+│    claude-haiku- │
+│    4-5"       │
 │ }             │
 └──────────────┘
 ```
@@ -33,14 +34,18 @@ opencode.json           Task tool               Agent execution
 |-------|-------|----------|------|------|---------|
 | `build` | (user-selected) | — | — | primary | Default agent, delegates complex tasks |
 | `orchestrator` | (user-selected) | — | — | primary (plan only) | Decomposes tasks, plans, dispatches |
-| `explore` | `zai-coding-plan/glm-4.7-flash` | Z.AI Coding Plan | T1 | subagent | File reads, grep, directory listing (primary) |
-| `explore-fallback` | `opencode/glm-5-free` | OpenCode Zen | T0 (free) | subagent (hidden) | File reads, grep, directory listing (fallback) |
+| `explore` | `anthropic/claude-haiku-4-5` | Anthropic | — | subagent | File reads, grep, directory listing (primary) |
+| `explore-fallback` | `opencode/minimax-m2.5-free` | OpenCode Zen | T0 (free) | subagent (hidden) | File reads, grep, directory listing (fallback) |
 | `general` | `zai-coding-plan/glm-4.7` | Z.AI Coding Plan | T1 | subagent | Code comprehension, multi-file analysis |
-| `transform` | `opencode/minimax-m2.5-free` | OpenCode Zen | T0 (free) | subagent (hidden) | Renames, formatting, simple refactors |
+| `transform` | `zai-coding-plan/glm-4.7-flash` | Z.AI Coding Plan | T1 | subagent (hidden) | Renames, formatting, simple refactors |
 | `validator` | `opencode/gpt-5-nano` | OpenCode Zen | T0 (free) | subagent (hidden) | Output validation, format checks |
-| `executor` | `zai-coding-plan/glm-4.7` | Z.AI Coding Plan | T1 | subagent | Primary code executor (implementation, tests) |
-| `executor-sonnet` | `anthropic/claude-sonnet-4-6` | Anthropic | T1 | subagent | Fallback code executor (when executor fails) |
+| `executor` | `zai-coding-plan/glm-4.7-flash` | Z.AI Coding Plan | T1 | subagent | Primary code executor (implementation, tests) |
+| `executor-fallback` | `anthropic/claude-haiku-4-5` | Anthropic | — | subagent (hidden) | Fallback code executor (when executor fails) |
+| `librarian` | `zai-coding-plan/glm-4.7-flash` | Z.AI Coding Plan | T1 | subagent | Research: docs, GitHub, library best practices |
+| `librarian-fallback` | `anthropic/claude-haiku-4-5` | Anthropic | — | subagent (hidden) | Fallback librarian (when librarian fails) |
 | `code-reviewer` | `zai-coding-plan/glm-4.7` | Z.AI Coding Plan | T1 | subagent | Post-implementation review |
+| `metis` | `zai-coding-plan/glm-4.7-flash` | Z.AI Coding Plan | T1 | subagent (hidden) | Pre-planning consultant; intent + gap analysis |
+| `momus` | `zai-coding-plan/glm-4.7-flash` | Z.AI Coding Plan | T1 | subagent (hidden) | Plan reviewer; executable plans, valid refs |
 
 ---
 
@@ -51,12 +56,12 @@ When swapping one model for another within an existing agent.
 ### Steps
 
 1. **Open `opencode.json`** and find the agent definition:
-   ```json
-   "explore": {
-     "model": "opencode/glm-5-free",
-     ...
-   }
-   ```
+    ```json
+    "explore": {
+      "model": "anthropic/claude-haiku-4-5",
+      ...
+    }
+    ```
 
 2. **Change the `model` field** to the new model ID:
    ```json
@@ -84,21 +89,21 @@ When swapping one model for another within an existing agent.
 
 8. **Test routing** — start a new session and dispatch a task to the agent (see [Section 9: Testing Changes](#9-testing-changes)).
 
-### Example: Replacing GLM 5 Free with a Newer Free Model
+### Example: Replacing Claude Haiku 4.5 with a Newer Free Model
 
 ```json
 // Before
 "explore": {
   "mode": "subagent",
-  "model": "opencode/glm-5-free",
-  "description": "Fast, read-only file explorer using free model."
+  "model": "anthropic/claude-haiku-4-5",
+  "description": "Fast, read-only file explorer using Claude Haiku 4.5."
 }
 
 // After
 "explore": {
   "mode": "subagent",
-  "model": "opencode/gemma-4-free",
-  "description": "Fast, read-only file explorer using Gemma 4 free model."
+  "model": "opencode/newer-free-model",
+  "description": "Fast, read-only file explorer using newer free model."
 }
 ```
 
@@ -224,9 +229,9 @@ Most providers require API keys set as environment variables. Check the provider
 
 | Model ID | Provider | Model |
 |----------|----------|-------|
-| `opencode/glm-5-free` | OpenCode Zen | GLM 5 Free |
-| `opencode/kimi-k2.5-free` | OpenCode Zen | Kimi K2.5 Free |
+| `opencode/minimax-m2.5-free` | OpenCode Zen | MiniMax M2.5 Free |
 | `opencode/gpt-5-nano` | OpenCode Zen | GPT-5 Nano |
+| `anthropic/claude-haiku-4-5` | Anthropic | Claude Haiku 4.5 |
 | `anthropic/claude-opus-4-6` | Anthropic | Claude Opus 4.6 |
 | `anthropic/claude-sonnet-4-6` | Anthropic | Claude Sonnet 4.6 |
 | `zai-coding-plan/glm-4.7` | Z.AI Coding Plan | GLM 4.7 |
