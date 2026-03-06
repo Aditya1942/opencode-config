@@ -18,16 +18,21 @@ This skill defines how to route tasks to the right subagent, the orchestrator's 
 | **explore** | Claude Haiku 4.5 | Codebase mapping, search, LSP/ast_grep (read-only) | explore-fallback |
 | **explore-fallback** | MiniMax M2.5 Free | Fallback explorer | — |
 | **general** | GLM 4.7 | Code comprehension, multi-file analysis, dependency maps | — |
-| **librarian** | GLM 4.7 Flash | Research: docs, multi-repo, GitHub, library best practices | librarian-fallback |
+| **librarian** | GLM 4.7 | Research: docs, multi-repo, GitHub, library best practices | librarian-fallback |
 | **librarian-fallback** | Claude Haiku 4.5 | Fallback librarian | — |
-| **transform** | GLM 4.7 Flash | Renames, formatting, simple refactors (no logic change) | — |
+| **transform** | GLM 4.7 | Renames, formatting, simple refactors (no logic change) | — |
 | **validator** | GPT-5 Nano | Output validation, format checks, hallucination detection | — |
-| **executor** | GLM 4.7 Flash | Implements microtasks; full tool access | executor-fallback |
+| **executor** | GLM 4.7 | Implements microtasks; full tool access | executor-fallback |
 | **executor-fallback** | Claude Haiku 4.5 | Fallback executor | — |
-| **code-reviewer** | GLM 4.7 | Post-implementation review vs plan and standards | — |
-| **prometheus-lite** | Claude Haiku 4.5 | Strategic planner; plans only in `.sisyphus/plans/` (no code) | — |
-| **metis** | GLM 4.7 Flash | Pre-planning consultant; intent + gap analysis (read-only) | — |
-| **momus** | GLM 4.7 Flash | Plan reviewer; executable plans, valid refs (read-only) | — |
+| **code-reviewer** | GLM 4.7 | Security-first code review: quality, React/Next.js, Node.js patterns | — |
+| **architect** | GLM 4.7 | System design, ADRs, trade-off analysis (read-only) | — |
+| **build-error-resolver** | GLM 4.7 | Build/type error fixer — minimal diffs, no refactoring | — |
+| **refactor-cleaner** | GLM 4.7 | Dead code cleanup, duplicate elimination, dependency cleanup | — |
+| **doc-updater** | Claude Haiku 4.5 | Documentation and codemap generation/maintenance | — |
+| **tdd-guide** | GLM 4.7 | TDD specialist — Red-Green-Refactor, 80%+ coverage | — |
+| **prometheus-lite** | Claude Haiku 4.5 | Strategic planner; plans only in `.agents/plans/` (no code) | — |
+| **metis** | GLM 4.7 | Pre-planning consultant; intent + gap analysis (read-only) | — |
+| **momus** | GLM 4.7 | Plan reviewer; executable plans, valid refs (read-only) | — |
 
 ## When to Use Orchestrator
 
@@ -44,6 +49,11 @@ Use the **orchestrator** for any multi-step implementation task. The orchestrato
 | Validate another agent's output | **validator** |
 | Implement a single microtask from a plan | **executor** (fallback: executor-fallback) |
 | Review completed work vs plan | **code-reviewer** |
+| Architecture decisions, system design, ADRs | **architect** |
+| Build failures, type errors, get build green | **build-error-resolver** |
+| Dead code removal, dependency cleanup | **refactor-cleaner** |
+| Update docs, codemaps, READMEs | **doc-updater** |
+| Test-first development, coverage enforcement | **tdd-guide** |
 
 ## Task Routing
 
@@ -56,6 +66,11 @@ Use the **orchestrator** for any multi-step implementation task. The orchestrato
 | validate_output | validator | — |
 | generate_code, write_tests, refactor | executor | executor-fallback |
 | code_review (post-implementation) | code-reviewer | — |
+| architecture_design, ADRs, trade-offs | architect | — |
+| build_error_fix, type_errors | build-error-resolver | — |
+| dead_code_cleanup, dependency_prune | refactor-cleaner | — |
+| documentation, codemaps, READMEs | doc-updater | — |
+| tdd_enforcement, test_first | tdd-guide | — |
 | create_work_plan (plan only) | prometheus-lite | — (calls metis then optional momus) |
 | gap_analysis_before_plan | metis | — |
 | review_plan_file | momus | — |
@@ -82,6 +97,11 @@ The orchestrator is a **PURE DISPATCHER** — it NEVER does work directly.
 | Review plans | ❌ NEVER | @momus |
 | Run tests/lint/build | ❌ NEVER | @executor |
 | Git operations | ❌ NEVER | @executor |
+| Architecture/design | ❌ NEVER | @architect |
+| Build/type errors | ❌ NEVER | @build-error-resolver |
+| Dead code/cleanup | ❌ NEVER | @refactor-cleaner |
+| Documentation/codemaps | ❌ NEVER | @doc-updater |
+| TDD enforcement | ❌ NEVER | @tdd-guide |
 
 **Orchestrator's ONLY actions:**
 1. Dispatch subagents via Task tool
@@ -94,7 +114,7 @@ The orchestrator is a **PURE DISPATCHER** — it NEVER does work directly.
 - Call **@metis** immediately for hidden intents, gaps, risks, and clarifying directives.
 
 ### Step 2: Planning
-- Call **@prometheus-lite** to generate a full executable plan in `.sisyphus/plans/`.
+- Call **@prometheus-lite** to generate a full executable plan in `.agents/plans/`.
 
 ### Step 3: Plan Review
 - Call **@momus** to validate executability and references.
@@ -124,7 +144,7 @@ Use this only when the user explicitly wants a written plan without immediate ex
 
 1. Interview mode: classify intent, ask clarifying questions, optionally launch explore/librarian.
 2. Call **metis** for gap analysis (mandatory before generating the plan).
-3. Generate one plan at `.sisyphus/plans/{kebab-case-name}.md`.
+3. Generate one plan at `.agents/plans/{kebab-case-name}.md`.
 4. Optionally ask user if they want **momus** to review the plan.
 5. Tell user: "Plan ready. Run `/start-work {name}` to execute."
 
@@ -154,7 +174,7 @@ Route to **build** (or user) for:
 - Orchestrator NEVER uses Read, Write, Edit, Bash, grep, glob, or any tool that does work.
 - Maximize parallelism (use `dispatching-parallel-agents` skill).
 - Skills-first evaluation before any dispatch.
-- Track todos and checkpoints in `.sisyphus/`.
+- Track todos and checkpoints in `.agents/`.
 - Keep every response concise (bullets + clear next actions).
 - Orchestrator starts every response with **[ORCHESTRATOR]**.
 
@@ -173,7 +193,7 @@ Route to **build** (or user) for:
 | Executing without user GO | Orchestrator must wait for explicit user confirmation before step 4 |
 | Executing without loading skills | Load team-agents, dispatching-parallel-agents, executing-plans, verification-before-completion first |
 | Orchestrator writing code | Orchestrator is a conductor — dispatch to @executor for code |
-| Prometheus writing code | Prometheus-lite only creates/edits markdown in `.sisyphus/plans/` and `.sisyphus/drafts/` |
+| Prometheus writing code | Prometheus-lite only creates/edits markdown in `.agents/plans/` and `.agents/drafts/` |
 | Skipping verification gates | After each execution wave, dispatch @validator + @code-reviewer |
 | Serial collapse | Dispatch independent tasks in parallel |
 | Ignoring fallbacks | On failure or low confidence, use explore-fallback, librarian-fallback, or executor-fallback |
@@ -185,7 +205,7 @@ Route to **build** (or user) for:
 - **Did orchestrator ONLY dispatch subagents? No direct tool use?**
 - Did orchestrator run all 6 mandatory steps?
 - Was @metis dispatched before planning?
-- Was @prometheus-lite plan generated in `.sisyphus/plans/`?
+- Was @prometheus-lite plan generated in `.agents/plans/`?
 - Was @momus dispatched to review the plan?
 - Did user confirm with GO before execution started?
 - Were skills loaded before dispatching?

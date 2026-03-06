@@ -1,1 +1,0 @@
-/Users/aditya/.config/opencode/superpowers/.opencode/plugins/superpowers.js

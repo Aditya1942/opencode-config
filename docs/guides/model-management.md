@@ -34,18 +34,18 @@ opencode.json           Task tool               Agent execution
 |-------|-------|----------|------|------|---------|
 | `build` | (user-selected) | — | — | primary | Default agent, delegates complex tasks |
 | `orchestrator` | (user-selected) | — | — | primary (plan only) | Decomposes tasks, plans, dispatches |
-| `explore` | `anthropic/claude-haiku-4-5` | Anthropic | — | subagent | File reads, grep, directory listing (primary) |
+| `explore` | `anthropic/claude-haiku-4-5-20251001` | Anthropic | — | subagent | File reads, grep, directory listing (primary) |
 | `explore-fallback` | `opencode/minimax-m2.5-free` | OpenCode Zen | T0 (free) | subagent (hidden) | File reads, grep, directory listing (fallback) |
 | `general` | `zai-coding-plan/glm-4.7` | Z.AI Coding Plan | T1 | subagent | Code comprehension, multi-file analysis |
-| `transform` | `zai-coding-plan/glm-4.7-flash` | Z.AI Coding Plan | T1 | subagent (hidden) | Renames, formatting, simple refactors |
+| `transform` | `zai-coding-plan/glm-4.7` | Z.AI Coding Plan | T1 | subagent (hidden) | Renames, formatting, simple refactors |
 | `validator` | `opencode/gpt-5-nano` | OpenCode Zen | T0 (free) | subagent (hidden) | Output validation, format checks |
-| `executor` | `zai-coding-plan/glm-4.7-flash` | Z.AI Coding Plan | T1 | subagent | Primary code executor (implementation, tests) |
-| `executor-fallback` | `anthropic/claude-haiku-4-5` | Anthropic | — | subagent (hidden) | Fallback code executor (when executor fails) |
-| `librarian` | `zai-coding-plan/glm-4.7-flash` | Z.AI Coding Plan | T1 | subagent | Research: docs, GitHub, library best practices |
-| `librarian-fallback` | `anthropic/claude-haiku-4-5` | Anthropic | — | subagent (hidden) | Fallback librarian (when librarian fails) |
+| `executor` | `zai-coding-plan/glm-4.7` | Z.AI Coding Plan | T1 | subagent | Primary code executor (implementation, tests) |
+| `executor-fallback` | `anthropic/claude-haiku-4-5-20251001` | Anthropic | — | subagent (hidden) | Fallback code executor (when executor fails) |
+| `librarian` | `zai-coding-plan/glm-4.7` | Z.AI Coding Plan | T1 | subagent | Research: docs, GitHub, library best practices |
+| `librarian-fallback` | `anthropic/claude-haiku-4-5-20251001` | Anthropic | — | subagent (hidden) | Fallback librarian (when librarian fails) |
 | `code-reviewer` | `zai-coding-plan/glm-4.7` | Z.AI Coding Plan | T1 | subagent | Post-implementation review |
-| `metis` | `zai-coding-plan/glm-4.7-flash` | Z.AI Coding Plan | T1 | subagent (hidden) | Pre-planning consultant; intent + gap analysis |
-| `momus` | `zai-coding-plan/glm-4.7-flash` | Z.AI Coding Plan | T1 | subagent (hidden) | Plan reviewer; executable plans, valid refs |
+| `metis` | `zai-coding-plan/glm-4.7` | Z.AI Coding Plan | T1 | subagent (hidden) | Pre-planning consultant; intent + gap analysis |
+| `momus` | `zai-coding-plan/glm-4.7` | Z.AI Coding Plan | T1 | subagent (hidden) | Plan reviewer; executable plans, valid refs |
 
 ---
 
@@ -58,7 +58,7 @@ When swapping one model for another within an existing agent.
 1. **Open `opencode.json`** and find the agent definition:
     ```json
     "explore": {
-      "model": "anthropic/claude-haiku-4-5",
+      "model": "anthropic/claude-haiku-4-5-20251001",
       ...
     }
     ```
@@ -95,7 +95,7 @@ When swapping one model for another within an existing agent.
 // Before
 "explore": {
   "mode": "subagent",
-  "model": "anthropic/claude-haiku-4-5",
+  "model": "anthropic/claude-haiku-4-5-20251001",
   "description": "Fast, read-only file explorer using Claude Haiku 4.5."
 }
 
@@ -231,11 +231,11 @@ Most providers require API keys set as environment variables. Check the provider
 |----------|----------|-------|
 | `opencode/minimax-m2.5-free` | OpenCode Zen | MiniMax M2.5 Free |
 | `opencode/gpt-5-nano` | OpenCode Zen | GPT-5 Nano |
-| `anthropic/claude-haiku-4-5` | Anthropic | Claude Haiku 4.5 |
+| `anthropic/claude-haiku-4-5-20251001` | Anthropic | Claude Haiku 4.5 (latest) |
 | `anthropic/claude-opus-4-6` | Anthropic | Claude Opus 4.6 |
 | `anthropic/claude-sonnet-4-6` | Anthropic | Claude Sonnet 4.6 |
 | `zai-coding-plan/glm-4.7` | Z.AI Coding Plan | GLM 4.7 |
-| `zai-coding-plan/glm-4.7-flash` | Z.AI Coding Plan | GLM 4.7 Flash |
+| `zai-coding-plan/glm-4.7` | Z.AI Coding Plan | GLM 4.7 |
 
 ---
 

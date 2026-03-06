@@ -5,8 +5,7 @@ This document is designed for an AI agent to follow step-by-step to install this
 ## What This Installs
 
 - **OpenCode configuration** with multi-model Antigravity provider support (Claude, Gemini)
-- **Superpowers skill framework** — 15 core workflow skills (TDD, debugging, planning, etc.)
-- **Custom skills** — 5 domain-specific skills (code review, frontend design, security, etc.)
+- **My Skills collection** — 91+ consolidated workflow and domain skills (TDD, debugging, React, etc.)
 - **Orchestrator agent** — token-efficient conductor following mandatory 6-step workflow: Intent Gate → Plan → Review → Parallel Execute → Verify → Ship
 - **Planning agents** — prometheus-lite (strategic planner), metis (pre-planning consultant), momus (plan reviewer)
 - **Custom slash commands** (`/brainstorm`, `/write-plan`, `/execute-plan`, `/antigravity-quota`)
@@ -80,35 +79,7 @@ cd ~/.config/opencode && npm install
 
 This installs the `@opencode-ai/plugin` package required by the superpowers plugin.
 
-### Step 4: Clone Superpowers (Separate Repository)
-
-The superpowers skill framework lives in a separate repository and is gitignored from this config.
-
-```bash
-git clone https://github.com/obra/superpowers.git ~/.config/opencode/superpowers
-```
-
-### Step 5: Create Symlinks
-
-The plugin and skills need symlinks to connect superpowers into OpenCode's discovery paths.
-
-#### 5a. Symlink the Superpowers Plugin
-
-```bash
-mkdir -p ~/.config/opencode/plugins
-rm -f ~/.config/opencode/plugins/superpowers.js
-ln -s ~/.config/opencode/superpowers/.opencode/plugins/superpowers.js ~/.config/opencode/plugins/superpowers.js
-```
-
-#### 5b. Symlink Superpowers Skills
-
-```bash
-mkdir -p ~/.config/opencode/skills
-rm -rf ~/.config/opencode/skills/superpowers
-ln -s ~/.config/opencode/superpowers/skills ~/.config/opencode/skills/superpowers
-```
-
-### Step 6: Verify File Structure
+### Step 4: Verify File Structure
 
 After installation, the directory should look like this. Verify key files exist:
 
@@ -119,23 +90,19 @@ ls ~/.config/opencode/package.json
 ls ~/.config/opencode/AGENTS.md
 
 # Verify plugin
-ls -l ~/.config/opencode/plugins/superpowers.js
+ls -l ~/.config/opencode/plugins/custom-hooks.js
 
-# Verify skills symlink
-ls -l ~/.config/opencode/skills/superpowers
-
-# Verify superpowers repo
-ls ~/.config/opencode/superpowers/README.md
+# Verify skills
+ls ~/.config/opencode/skills/my-skills/
 
 # Verify custom skills
-ls ~/.config/opencode/skills/claudepowers/
 ls ~/.config/opencode/skills/team-agents/SKILL.md
 ls ~/.config/opencode/skills/update-config/SKILL.md
 ```
 
 If any of these checks fail, report the specific failure to the user.
 
-### Step 7: Restart OpenCode
+### Step 5: Restart OpenCode
 
 Tell the user to restart OpenCode for changes to take effect:
 
@@ -149,10 +116,9 @@ Please restart OpenCode to load the new configuration.
 
 After restart, verify the installation by asking the user to confirm these work:
 
-1. **Skills loaded**: Ask OpenCode: *"Do you have superpowers?"* — it should confirm the skill framework is active.
-2. **Skill tool works**: Use the `skill` tool to list available skills — should show `superpowers/`, `claudepowers/`, `update-config`, and `team-agents` skills.
-3. **Commands available**: Try `/brainstorm` — should invoke the brainstorming skill.
-4. **Agents configured**: Check that `orchestrator`, `prometheus-lite`, `metis`, `momus`, and `code-reviewer` agents are visible in the agent hierarchy.
+1. **Skills loaded**: Check the skill tool to list available skills — should show `my-skills/`, `update-config`, and `team-agents` skills.
+2. **Commands available**: Try `/brainstorm` — should invoke the brainstorming skill.
+3. **Agents configured**: Check that `orchestrator`, `prometheus-lite`, `metis`, `momus`, `code-reviewer`, `architect`, `build-error-resolver`, `refactor-cleaner`, `doc-updater`, and `tdd-guide` agents are visible in the agent hierarchy.
 5. **MCP servers connected**: Verify MCP tools like `ast-grep_find_code`, `context7_resolve-library-id`, `web-search_search_web` are available.
 
 ---
@@ -189,13 +155,7 @@ cd ~/.config/opencode && git pull origin main
 Or invoke the update-config skill inside OpenCode:
 
 ```
-Use the update-config skill to update superpowers and configuration.
-```
-
-### Update Superpowers
-
-```bash
-cd ~/.config/opencode/superpowers && git pull
+Use the update-config skill to update config.
 ```
 
 ---
@@ -204,17 +164,13 @@ cd ~/.config/opencode/superpowers && git pull
 
 ### Plugin Not Loading
 
-1. Check plugin symlink: `ls -l ~/.config/opencode/plugins/superpowers.js`
-2. Check source exists: `ls ~/.config/opencode/superpowers/.opencode/plugins/superpowers.js`
-3. Ensure `@opencode-ai/plugin` is installed: `ls ~/.config/opencode/node_modules/@opencode-ai/`
-4. Check OpenCode logs for errors
+1. Ensure `@opencode-ai/plugin` is installed: `ls ~/.config/opencode/node_modules/@opencode-ai/`
+2. Check OpenCode logs for errors
 
 ### Skills Not Found
 
-1. Check skills symlink: `ls -l ~/.config/opencode/skills/superpowers`
-2. Verify it points to: `~/.config/opencode/superpowers/skills`
-3. Check custom skills exist: `ls ~/.config/opencode/skills/claudepowers/`
-4. Use the `skill` tool to list what's discovered
+1. Check skills exist: `ls ~/.config/opencode/skills/my-skills/`
+2. Use the `skill` tool to list what's discovered
 
 ### Agents Not Working
 
@@ -259,32 +215,20 @@ When skills reference Claude Code tools, OpenCode uses these equivalents:
 ├── MCP-README.md               # MCP server configuration guide
 ├── package.json                # Dependencies (@opencode-ai/plugin)
 ├── node_modules/               # Installed packages
-├── .sisyphus/
+├── .agents/
 │   ├── plans/                  # Implementation plans (generated by prometheus-lite)
 │   └── drafts/                 # Draft plans and interview notes
 ├── docs/
 │   ├── guides/                 # User guides (model management, etc.)
 │   └── prometheus-metis-momus-paste.md  # Paste-able planning agents
 ├── plugins/
-│   └── superpowers.js          # Symlink → superpowers/.opencode/plugins/superpowers.js
-├── skills/
-│   ├── superpowers/            # Symlink → superpowers/skills/ (15 core skills)
-│   ├── claudepowers/           # 5 custom domain-specific skills
-│   │   ├── code-review/
-│   │   ├── explanatory-output/
-│   │   ├── frontend-design/
-│   │   ├── readme-driven-code-understanding/
-│   │   └── security-guidance/
-│   ├── team-agents/            # Multi-agent coding architecture skill
-│   │   └── SKILL.md
-│   └── update-config/          # Update superpowers and config skill
-│       └── SKILL.md
-└── superpowers/                # Cloned from github.com/obra/superpowers (gitignored)
-    ├── skills/                 # 15 core workflow skills
-    ├── .opencode/
-    │   └── plugins/
-    │       └── superpowers.js  # Source plugin file
-    └── ...
+│   └── custom-hooks.js         # Combined hooks plugin
+└── skills/
+    ├── my-skills/              # Consolidated skills directory (91+ skills)
+    ├── team-agents/            # Multi-agent coding architecture skill
+    │   └── SKILL.md
+    └── update-config/          # Update config skill
+        └── SKILL.md
 ```
 
 ---
@@ -292,5 +236,4 @@ When skills reference Claude Code tools, OpenCode uses these equivalents:
 ## Getting Help
 
 - **This config**: [github.com/Aditya1942/opencode-config](https://github.com/Aditya1942/opencode-config)
-- **Superpowers**: [github.com/obra/superpowers](https://github.com/obra/superpowers)
 - **OpenCode.ai**: [opencode.ai](https://opencode.ai)

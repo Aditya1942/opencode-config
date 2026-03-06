@@ -38,13 +38,10 @@ A multi-agent system with a token-efficient orchestrator conductor:
 
 The `orchestrator` runs a mandatory 6-step workflow: (1) dispatch @metis for intent gate, (2) dispatch @prometheus-lite for planning, (3) dispatch @momus for plan review + user confirmation, (4) dispatch parallel execution via @executor/@explore/@librarian/@transform, (5) dispatch @validator + @code-reviewer for verification, (6) dispatch commit. **Orchestrator is a PURE DISPATCHER — it never does work directly.** See the `team-agents` skill for the full architecture spec.
 
-### 21 Skills
+### 91+ Skills
 
-**Core Superpowers** (from [obra/superpowers](https://github.com/obra/superpowers)):
-brainstorming, writing-plans, executing-plans, test-driven-development, systematic-debugging, verification-before-completion, using-git-worktrees, dispatching-parallel-agents, subagent-driven-development, requesting-code-review, receiving-code-review, finishing-a-development-branch, writing-skills, using-superpowers
-
-**Custom Skills** (claudepowers):
-code-review, explanatory-output, frontend-design, readme-driven-code-understanding, security-guidance
+**My Skills** (`my-skills/`):
+A consolidated collection of 91 skills for AI agents covering frontend, backend, code review, documentation updates, testing, and more (e.g. `brainstorming`, `plan-writing`, `clean-code`, `frontend-design`, `react-best-practices`, etc.).
 
 **Orchestration & Config:**
 team-agents, update-config
@@ -56,7 +53,6 @@ team-agents, update-config
 | `/brainstorm` | Invoke brainstorming skill before creative work |
 | `/write-plan` | Create detailed implementation plan |
 | `/execute-plan` | Execute plan in batches with review checkpoints |
-| `/update-superpowers` | Pull latest superpowers and config from git |
 | `/antigravity-quota` | Check Antigravity API quota for all accounts |
 
 ---
@@ -72,16 +68,21 @@ team-agents, update-config
 | **explore** | Claude Haiku 4.5 | subagent | Codebase mapping, contextual search, LSP/ast_grep/ripgrep (read-only) |
 | **explore-fallback** | MiniMax M2.5 Free | subagent (hidden) | Fallback when explore fails |
 | **general** | GLM 4.7 | subagent | Code comprehension, multi-file analysis, dependency maps |
-| **librarian** | GLM 4.7 Flash | subagent | Research: docs, multi-repo, GitHub examples, library best practices |
+| **librarian** | GLM 4.7 | subagent | Research: docs, multi-repo, GitHub examples, library best practices |
 | **librarian-fallback** | Claude Haiku 4.5 | subagent (hidden) | Fallback when librarian fails |
-| **transform** | GLM 4.7 Flash | subagent (hidden) | Renames, formatting, simple refactors (no logic changes) |
+| **transform** | GLM 4.7 | subagent (hidden) | Renames, formatting, simple refactors (no logic changes) |
 | **validator** | GPT-5 Nano | subagent (hidden) | Output validation, format checks, hallucination detection |
-| **executor** | GLM 4.7 Flash | subagent | Implements microtasks from orchestrator; full tool access |
+| **executor** | GLM 4.7 | subagent | Implements microtasks from orchestrator; full tool access |
 | **executor-fallback** | Claude Haiku 4.5 | subagent (hidden) | Fallback when executor fails |
-| **code-reviewer** | GLM 4.7 | subagent | Post-implementation review vs plan and standards |
-| **prometheus-lite** | Claude Haiku 4.5 | subagent | Strategic planner; interview → Metis → plan in `.sisyphus/plans/` (no code) |
-| **metis** | GLM 4.7 Flash | subagent (hidden) | Pre-planning consultant; intent classification, gap analysis (read-only) |
-| **momus** | GLM 4.7 Flash | subagent (hidden) | Plan reviewer; executable plans, valid references (read-only) |
+| **code-reviewer** | GLM 4.7 | subagent | Security-first code review: quality, React/Next.js, Node.js patterns |
+| **architect** | GLM 4.7 | subagent | System design, ADRs, trade-off analysis (read-only) |
+| **build-error-resolver** | GLM 4.7 | subagent | Build/type error fixer — minimal diffs, no refactoring |
+| **refactor-cleaner** | GLM 4.7 | subagent | Dead code cleanup, duplicate elimination, dependency cleanup |
+| **doc-updater** | Claude Haiku 4.5 | subagent | Documentation and codemap generation/maintenance |
+| **tdd-guide** | GLM 4.7 | subagent | TDD specialist — Red-Green-Refactor, 80%+ coverage |
+| **prometheus-lite** | Claude Haiku 4.5 | subagent | Strategic planner; interview → Metis → plan in `.agents/plans/` (no code) |
+| **metis** | GLM 4.7 | subagent (hidden) | Pre-planning consultant; intent classification, gap analysis (read-only) |
+| **momus** | GLM 4.7 | subagent (hidden) | Plan reviewer; executable plans, valid references (read-only) |
 
 Routing details: load the **team-agents** skill.
 
@@ -92,15 +93,13 @@ Routing details: load the **team-agents** skill.
 | `/brainstorm` | Invoke brainstorming skill before creative work |
 | `/write-plan` | Create implementation plan with tasks |
 | `/execute-plan` | Execute plan in batches with checkpoints |
-| `/update-superpowers` | Pull latest superpowers and config from git |
 | `/antigravity-quota` | Check Antigravity API quota (plugin) |
 
 ### Skills
 
 | Collection | Skills |
 |------------|--------|
-| **superpowers** (symlinked) | brainstorming, writing-plans, executing-plans, test-driven-development, systematic-debugging, verification-before-completion, using-git-worktrees, dispatching-parallel-agents, subagent-driven-development, requesting-code-review, receiving-code-review, finishing-a-development-branch, writing-skills, using-superpowers |
-| **claudepowers** | code-review, explanatory-output, frontend-design, readme-driven-code-understanding, security-guidance |
+| **my-skills** | Consolidated directory with 91 varied skills (e.g. `brainstorming`, `plan-writing`, `react-best-practices`) |
 | **Orchestration** | team-agents |
 | **Config** | update-config |
 
@@ -125,7 +124,6 @@ MCP config: `opencode.json`.
 
 | Plugin | Purpose |
 |--------|---------|
-| `superpowers.js` | Injects superpowers skill framework via system prompt transform |
 | `custom-hooks.js` | Context window monitor, tool output truncator, model fallback, preemptive compaction, rules injector |
 
 ---
@@ -141,18 +139,7 @@ git clone https://github.com/Aditya1942/opencode-config.git ~/.config/opencode
 # 2. Install dependencies
 cd ~/.config/opencode && bun install
 
-# 3. Clone superpowers
-git clone https://github.com/obra/superpowers.git ~/.config/opencode/superpowers
-
-# 4. Symlink plugin
-mkdir -p ~/.config/opencode/plugins
-ln -sf ~/.config/opencode/superpowers/.opencode/plugins/superpowers.js ~/.config/opencode/plugins/superpowers.js
-
-# 5. Symlink skills
-mkdir -p ~/.config/opencode/skills
-ln -sfn ~/.config/opencode/superpowers/skills ~/.config/opencode/skills/superpowers
-
-# 6. Restart OpenCode
+# 3. Restart OpenCode
 ```
 
 See [.opencode/INSTALL.md](.opencode/INSTALL.md) for the full detailed guide with verification steps and troubleshooting.
@@ -164,12 +151,9 @@ See [.opencode/INSTALL.md](.opencode/INSTALL.md) for the full detailed guide wit
 ```bash
 # Update this config
 cd ~/.config/opencode && git pull
-
-# Update superpowers
-cd ~/.config/opencode/superpowers && git pull
 ```
 
-Or inside OpenCode, run `/update-superpowers`.
+Or inside OpenCode, run `/update-config`.
 
 ---
 
@@ -181,26 +165,18 @@ Or inside OpenCode, run `/update-superpowers`.
 ├── AGENTS.md                   # Agent instructions and coding standards
 ├── package.json                # Dependencies (@opencode-ai/plugin)
 ├── plugins/
-│   ├── superpowers.js          # Symlink → superpowers/.opencode/plugins/superpowers.js
 │   ├── custom-hooks.js         # Combined hooks plugin
 │   └── hooks/                  # Individual hook implementations
 ├── skills/
-│   ├── superpowers/            # Symlink → superpowers/skills/ (15 core skills)
-│   ├── claudepowers/           # 5 custom domain-specific skills
-│   │   ├── code-review/
-│   │   ├── explanatory-output/
-│   │   ├── frontend-design/
-│   │   ├── readme-driven-code-understanding/
-│   │   └── security-guidance/
+│   ├── my-skills/              # Consolidated skills directory (91+ skills)
 │   ├── team-agents/            # Multi-agent routing skill
-│   └── update-config/          # Update superpowers and config skill
-├── .sisyphus/
+│   └── update-config/          # Update config skill
+├── .agents/
 │   ├── plans/                  # Implementation plans (generated by prometheus-lite)
 │   └── drafts/                 # Draft plans and interview notes
 ├── docs/                       # Guides and design docs
-├── .opencode/
-│   └── INSTALL.md              # Agent-executable installation guide
-└── superpowers/                # Cloned from github.com/obra/superpowers (gitignored)
+└── .opencode/
+    └── INSTALL.md              # Agent-executable installation guide
 ```
 
 ---
@@ -216,4 +192,4 @@ Or inside OpenCode, run `/update-superpowers`.
 
 ## License
 
-Personal configuration. Superpowers framework is maintained at [github.com/obra/superpowers](https://github.com/obra/superpowers).
+Personal configuration.

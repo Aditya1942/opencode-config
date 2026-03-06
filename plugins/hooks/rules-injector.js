@@ -13,7 +13,7 @@ const PROJECT_RULE_SUBDIRS = [
   [".github", "instructions"],
   [".cursor", "rules"],
   [".claude", "rules"],
-  [".sisyphus", "rules"],
+  [".agents", "rules"],
 ]
 const PROJECT_RULE_FILES = [".github/copilot-instructions.md"]
 const USER_RULE_DIR = ".claude/rules"
@@ -104,7 +104,7 @@ function parseRuleFrontmatter(content) {
       if (key === "alwaysApply") {
         metadata.alwaysApply = value === "true"
       } else if (key === "globs" || key === "paths") {
-        metadata.globs = value.includes(",") 
+        metadata.globs = value.includes(",")
           ? value.split(",").map(s => s.trim())
           : value
       }
@@ -189,7 +189,7 @@ function findRuleFiles(projectRoot, home, targetFile) {
             })
           }
         }
-      } catch {}
+      } catch { }
     }
   }
 
@@ -209,7 +209,7 @@ function findRuleFiles(projectRoot, home, targetFile) {
           })
         }
       }
-    } catch {}
+    } catch { }
   }
 
   return candidates
@@ -298,7 +298,7 @@ export function createRulesInjectorHook(ctx) {
         cache.realPaths.add(candidate.realPath)
         cache.contentHashes.add(contentHash)
         dirty = true
-      } catch {}
+      } catch { }
     }
 
     if (toInject.length === 0) return
