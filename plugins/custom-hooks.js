@@ -36,7 +36,7 @@ export const CustomHooksPlugin = async (ctx) => {
       try {
         await handler(args)
       } catch (err) {
-        console.error("[CustomHooks] Event handler error:", err)
+        // console.error("[CustomHooks] Event handler error:", err)
       }
     }
   }
@@ -54,7 +54,7 @@ export const CustomHooksPlugin = async (ctx) => {
       try {
         await handler(input, output)
       } catch (err) {
-        console.error("[CustomHooks] Tool handler error:", err)
+        // console.error("[CustomHooks] Tool handler error:", err)
       }
     }
   }
