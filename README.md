@@ -99,7 +99,7 @@ Use the `skill` tool to load skills; never read `SKILL.md` directly.
 | **context7** | Web / Search | Library documentation | resolve-library-id, get-library-docs; used by Librarian |
 | **grep-app** | Web / Search | GitHub code search | searchCode, grep_query; used by Librarian |
 | **web-search** | Web / Search | Free web search + URL fetching | search_web, fetch_url; no API key; used by Librarian |
-| **claude-code** | Automation | Local Claude Code CLI wrapper | `list_profiles`, `list_agents`, `list_bridge_prompts`, `plan_task`, `execute_task`, `run_skill`, `run_prompt`; supports Claude profiles, bridged OpenCode skills, plugins, settings, sessions, streaming, and permission overrides |
+| **claude-code** | Automation | Localhost remote MCP bridge for the custom Claude Code CLI wrapper | `list_profiles`, `list_agents`, `list_bridge_prompts`, `plan_task`, `execute_task`, `run_skill`, `run_prompt`; exposed at `http://127.0.0.1:4318/mcp` for OpenCode and other MCP-aware IDEs |
 
 MCP config: `opencode.json`.
 
@@ -122,7 +122,15 @@ git clone https://github.com/Aditya1942/opencode-config.git ~/.config/opencode
 # 2. Install dependencies
 cd ~/.config/opencode && bun install
 
-# 3. Restart OpenCode
+# 3. Install the MCP bridge globally and load the launch agent
+npm install -g --prefix ~/.local mcp-proxy
+mkdir -p ~/Library/LaunchAgents ~/.config/opencode/logs
+ln -sf ~/.config/opencode/mcp/claude-code-mcp.plist ~/Library/LaunchAgents/io.aditya.opencode.claude-code-mcp.plist
+launchctl bootout "gui/$(id -u)" ~/Library/LaunchAgents/io.aditya.opencode.claude-code-mcp.plist 2>/dev/null || true
+launchctl bootstrap "gui/$(id -u)" ~/Library/LaunchAgents/io.aditya.opencode.claude-code-mcp.plist
+launchctl kickstart -k "gui/$(id -u)/io.aditya.opencode.claude-code-mcp"
+
+# 4. Restart OpenCode
 ```
 
 See [.opencode/INSTALL.md](.opencode/INSTALL.md) for the full detailed guide with verification steps and troubleshooting.
@@ -148,7 +156,9 @@ Or inside OpenCode, run `/update-config`.
 ├── AGENTS.md                   # Agent instructions and coding standards
 ├── package.json                # Dependencies (@opencode-ai/plugin)
 ├── mcp/
-│   └── claude-code-server.mjs  # Local Claude Code CLI MCP server
+│   ├── claude-code-server.mjs  # Custom Claude Code CLI MCP server
+│   ├── claude-code-bridge.sh   # Localhost HTTP bridge launcher
+│   └── claude-code-mcp.plist   # launchd service definition for the bridge
 ├── plugins/
 │   ├── custom-hooks.js         # Combined hooks plugin
 │   └── hooks/                  # Individual hook implementations
@@ -172,7 +182,7 @@ Or inside OpenCode, run `/update-config`.
 - Git
 - Bun (or Node.js)
 - Antigravity auth (optional — for Antigravity model providers)
-- Claude Code CLI (optional — required for the `claude-code` MCP server)
+- Claude Code CLI (optional — required behind the `claude-code` MCP bridge)
 
 ---
 

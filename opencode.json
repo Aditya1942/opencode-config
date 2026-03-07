@@ -66,11 +66,8 @@
       ]
     },
     "claude-code": {
-      "type": "local",
-      "command": [
-        "node",
-        "./mcp/claude-code-server.mjs"
-      ]
+      "type": "remote",
+      "url": "http://127.0.0.1:4318/mcp"
     }
   },
   "agent": {
