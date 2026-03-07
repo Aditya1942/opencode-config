@@ -1,6 +1,6 @@
 # OpenCode Config — Superpowers + Antigravity
 
-A production-ready [OpenCode.ai](https://opencode.ai) configuration with the [Superpowers](https://github.com/obra/superpowers) skill framework, multi-tier subagent orchestration, and Antigravity model providers.
+A production-ready [OpenCode.ai](https://opencode.ai) configuration with the [Superpowers](https://github.com/obra/superpowers) skill framework, Claude Code MCP specialization, and Antigravity model providers.
 
 ---
 
@@ -28,15 +28,15 @@ The agent will fetch the installation document and execute every step to set up 
 
 ### Agent Architecture
 
-A multi-agent system with a token-efficient orchestrator conductor:
+OpenCode now uses a single primary agent layer and pushes as much work as possible into the `claude-code` MCP.
 
 | Agent | Model | Mode | Role |
 |-------|-------|------|------|
-| `build` (primary) | User-selected | build/plan | Default agent, routes complex tasks to orchestrator |
-| `orchestrator` | User-selected | build/plan | Token-efficient conductor — PURE DISPATCHER (never does work directly) |
-| `code-reviewer` | GLM 4.7 | subagent | Post-implementation review |
+| `build` (primary) | User-selected | build/plan | Default agent; maximizes Claude Code usage for planning, execution, validation, and review |
+| `plan` | User-selected | build/plan | Planning-focused entry point using Claude Code for planning plus plan validation/review |
+| `orchestrator` | User-selected | build/plan | Coordination-focused entry point using Claude Code end-to-end, with mandatory review/verification on change-producing flows |
 
-The `orchestrator` runs a mandatory 6-step workflow: (1) dispatch @metis for intent gate, (2) dispatch @prometheus-lite for planning, (3) dispatch @momus for plan review + user confirmation, (4) dispatch parallel execution via @executor/@explore/@librarian/@transform, (5) dispatch @validator + @code-reviewer for verification, (6) dispatch commit. **Orchestrator is a PURE DISPATCHER — it never does work directly.** See the `team-agents` skill for the full architecture spec.
+Instead of OpenCode subagents, the repo uses Claude Code profiles such as `planner`, `explore`, `general`, `librarian`, `executor`, `validator`, `code-reviewer`, `architect`, `build-error-resolver`, `refactor-cleaner`, `doc-updater`, and `tdd-guide`. For any task that produces changes, Claude-backed validation and review are expected before completion. See the `team-agents` skill for routing guidance.
 
 ### 91+ Skills
 
@@ -63,26 +63,9 @@ team-agents, update-config
 
 | Agent | Model | Mode | Role |
 |-------|-------|------|------|
-| **build** | User-selected | primary | Default agent; delegates complex tasks to orchestrator |
-| **orchestrator** | User-selected | primary | Token-efficient conductor — PURE DISPATCHER (never does work directly) |
-| **explore** | Claude Haiku 4.5 | subagent | Codebase mapping, contextual search, LSP/ast_grep/ripgrep (read-only) |
-| **explore-fallback** | MiniMax M2.5 Free | subagent (hidden) | Fallback when explore fails |
-| **general** | GLM 4.7 | subagent | Code comprehension, multi-file analysis, dependency maps |
-| **librarian** | GLM 4.7 | subagent | Research: docs, multi-repo, GitHub examples, library best practices |
-| **librarian-fallback** | Claude Haiku 4.5 | subagent (hidden) | Fallback when librarian fails |
-| **transform** | GLM 4.7 | subagent (hidden) | Renames, formatting, simple refactors (no logic changes) |
-| **validator** | GPT-5 Nano | subagent (hidden) | Output validation, format checks, hallucination detection |
-| **executor** | GLM 4.7 | subagent | Implements microtasks from orchestrator; full tool access |
-| **executor-fallback** | Claude Haiku 4.5 | subagent (hidden) | Fallback when executor fails |
-| **code-reviewer** | GLM 4.7 | subagent | Security-first code review: quality, React/Next.js, Node.js patterns |
-| **architect** | GLM 4.7 | subagent | System design, ADRs, trade-off analysis (read-only) |
-| **build-error-resolver** | GLM 4.7 | subagent | Build/type error fixer — minimal diffs, no refactoring |
-| **refactor-cleaner** | GLM 4.7 | subagent | Dead code cleanup, duplicate elimination, dependency cleanup |
-| **doc-updater** | Claude Haiku 4.5 | subagent | Documentation and codemap generation/maintenance |
-| **tdd-guide** | GLM 4.7 | subagent | TDD specialist — Red-Green-Refactor, 80%+ coverage |
-| **prometheus-lite** | Claude Haiku 4.5 | subagent | Strategic planner; interview → Metis → plan in `.agents/plans/` (no code) |
-| **metis** | GLM 4.7 | subagent (hidden) | Pre-planning consultant; intent classification, gap analysis (read-only) |
-| **momus** | GLM 4.7 | subagent (hidden) | Plan reviewer; executable plans, valid references (read-only) |
+| **build** | User-selected | primary | Default agent; maximizes `claude-code` MCP usage for planning, execution, validation, and review |
+| **plan** | User-selected | primary | Planning-focused entry point using Claude Code for planning plus plan validation/review |
+| **orchestrator** | User-selected | primary | Coordination-focused entry point using Claude Code end-to-end, with mandatory review/verification on change-producing flows |
 
 Routing details: load the **team-agents** skill.
 
@@ -116,7 +99,7 @@ Use the `skill` tool to load skills; never read `SKILL.md` directly.
 | **context7** | Web / Search | Library documentation | resolve-library-id, get-library-docs; used by Librarian |
 | **grep-app** | Web / Search | GitHub code search | searchCode, grep_query; used by Librarian |
 | **web-search** | Web / Search | Free web search + URL fetching | search_web, fetch_url; no API key; used by Librarian |
-| **cloudflare** | Infrastructure | Cloudflare management | Workers, KV, R2, D1, Durable Objects, Queues, AI, DNS |
+| **claude-code** | Automation | Local Claude Code CLI wrapper | `list_profiles`, `list_agents`, `list_bridge_prompts`, `plan_task`, `execute_task`, `run_skill`, `run_prompt`; supports Claude profiles, bridged OpenCode skills, plugins, settings, sessions, streaming, and permission overrides |
 
 MCP config: `opencode.json`.
 
@@ -164,6 +147,8 @@ Or inside OpenCode, run `/update-config`.
 ├── opencode.json               # Main config (models, agents, commands, providers, MCP)
 ├── AGENTS.md                   # Agent instructions and coding standards
 ├── package.json                # Dependencies (@opencode-ai/plugin)
+├── mcp/
+│   └── claude-code-server.mjs  # Local Claude Code CLI MCP server
 ├── plugins/
 │   ├── custom-hooks.js         # Combined hooks plugin
 │   └── hooks/                  # Individual hook implementations
@@ -187,6 +172,7 @@ Or inside OpenCode, run `/update-config`.
 - Git
 - Bun (or Node.js)
 - Antigravity auth (optional — for Antigravity model providers)
+- Claude Code CLI (optional — required for the `claude-code` MCP server)
 
 ---
 

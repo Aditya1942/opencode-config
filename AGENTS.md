@@ -91,29 +91,11 @@ the `claude` CLI installed and local dev marketplace enabled in settings.
 
 | Agent | Primary Model | Fallback Model | Role |
 |-------|---------------|----------------|------|
-| `build` | (user-selected) | - | Primary agent, delegates complex tasks |
-| `orchestrator` | (user-selected) | - | Token-efficient conductor — PURE DISPATCHER |
-| `explore` | Claude Haiku 4.5 | MiniMax M2.5 Free | Read-only codebase mapping, search, architecture |
-| `explore-fallback` | MiniMax M2.5 Free | - | Fallback explorer (hidden) |
-| `general` | GLM 4.7 | Claude Sonnet 4.6 | Code comprehension, multi-file analysis |
-| `librarian` | GLM 4.7 | Claude Haiku 4.5 | Research: docs, GitHub examples, library best practices |
-| `librarian-fallback` | Claude Haiku 4.5 | - | Fallback librarian (hidden) |
-| `executor` | GLM 4.7 | Claude Sonnet 4.6 | Implements microtasks — edits files, runs commands |
-| `executor-fallback` | Claude Haiku 4.5 | - | Fallback executor (hidden) |
-| `transform` | GLM 4.7 | MiniMax M2.5 Free | Mechanical renames, reformatting, simple refactors |
-| `validator` | GPT-5 Nano | Claude Haiku 4.5 | Output validation, format/schema checks |
-| `code-reviewer` | GLM 4.7 | Claude Opus 4.6 | Security-first code review: quality, React/Next.js, Node.js patterns |
-| `architect` | GLM 4.7 | - | System design, ADRs, trade-off analysis (read-only) |
-| `build-error-resolver` | GLM 4.7 | - | Build/type error fixer — minimal diffs, no refactoring |
-| `refactor-cleaner` | GLM 4.7 | - | Dead code cleanup, duplicate elimination, dependency cleanup |
-| `doc-updater` | Claude Haiku 4.5 | - | Documentation and codemap generation/maintenance |
-| `tdd-guide` | GLM 4.7 | - | TDD specialist — Red-Green-Refactor, 80%+ coverage |
-| `prometheus-lite` | (user-selected) | - | Creates plans in `.agents/plans/` — never writes code |
-| `metis` | GLM 4.7 | Claude Haiku 4.5 | Pre-planning gap analysis (hidden) |
-| `momus` | GLM 4.7 | Claude Haiku 4.5 | Plan review — verifies executability (hidden) |
+| `build` | (user-selected) | - | Primary OpenCode agent. Maximizes `claude-code` MCP usage for planning, execution, validation, and review instead of OpenCode subagents. |
+| `plan` | (user-selected) | - | Planning-focused entry point. Uses Claude Code for planning plus plan validation/review. |
+| `orchestrator` | (user-selected) | - | Coordination-focused entry point. Sequences planning, exploration, implementation, validation, and review through Claude Code profiles. |
 
-**Primary models**: All subagents use zai-coding-plan models (GLM 4.7) except `explore` (speed-critical), `validator` (optimized), and `doc-updater` (lightweight).
-**Fallbacks**: All fallbacks use free models (MiniMax M2.5 Free, GPT-5 Nano) or Anthropic models (Haiku 4.5, Sonnet 4.6, Opus 4.6).
+**Claude specialization layer:** Use the `claude-code` MCP with a `profile` value such as `explore`, `general`, `librarian`, `executor`, `validator`, `code-reviewer`, `planner`, `architect`, `build-error-resolver`, `refactor-cleaner`, `doc-updater`, `tdd-guide`, or `skill-chooser`. For any task that produces changes, Claude-backed validation and review are mandatory before completion.
 Full routing details: load `team-agents` skill.
 
 ## Skills

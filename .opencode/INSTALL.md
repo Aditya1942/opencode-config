@@ -6,10 +6,9 @@ This document is designed for an AI agent to follow step-by-step to install this
 
 - **OpenCode configuration** with multi-model Antigravity provider support (Claude, Gemini)
 - **My Skills collection** — 91+ consolidated workflow and domain skills (TDD, debugging, React, etc.)
-- **Orchestrator agent** — token-efficient conductor following mandatory 6-step workflow: Intent Gate → Plan → Review → Parallel Execute → Verify → Ship
-- **Planning agents** — prometheus-lite (strategic planner), metis (pre-planning consultant), momus (plan reviewer)
+- **Claude Code MCP profiles** — all three primary agents maximize `claude-code` usage for planning, exploration, implementation, validation, review, docs, cleanup, and architecture work
 - **Custom slash commands** (`/brainstorm`, `/write-plan`, `/execute-plan`, `/antigravity-quota`)
-- **MCP servers** — memory, sequential-thinking, time, ast-grep, context7, grep-app, web-search, cloudflare
+- **MCP servers** — memory, sequential-thinking, time, ast-grep, context7, grep-app, web-search, claude-code
 
 ---
 
@@ -31,6 +30,7 @@ Before starting, verify these are installed. If any are missing, inform the user
 |------|---------|
 | Antigravity Auth | Required for Antigravity model providers (Claude/Gemini via Google proxy) |
 | Playwright | Browser automation (`npx playwright install`) |
+| Claude Code CLI | Required for the `claude-code` MCP server (`claude --version`) |
 
 ---
 
@@ -91,6 +91,7 @@ ls ~/.config/opencode/AGENTS.md
 
 # Verify plugin
 ls -l ~/.config/opencode/plugins/custom-hooks.js
+ls -l ~/.config/opencode/mcp/claude-code-server.mjs
 
 # Verify skills
 ls ~/.config/opencode/skills/my-skills/
@@ -118,8 +119,9 @@ After restart, verify the installation by asking the user to confirm these work:
 
 1. **Skills loaded**: Check the skill tool to list available skills — should show `my-skills/`, `update-config`, and `team-agents` skills.
 2. **Commands available**: Try `/brainstorm` — should invoke the brainstorming skill.
-3. **Agents configured**: Check that `orchestrator`, `prometheus-lite`, `metis`, `momus`, `code-reviewer`, `architect`, `build-error-resolver`, `refactor-cleaner`, `doc-updater`, and `tdd-guide` agents are visible in the agent hierarchy.
-5. **MCP servers connected**: Verify MCP tools like `ast-grep_find_code`, `context7_resolve-library-id`, `web-search_search_web` are available.
+3. **Primary agents configured**: Check that `build`, `plan`, and `orchestrator` are visible in the agent hierarchy and that each is described as routing work through `claude-code`.
+4. **Claude profiles available**: Verify `claude-code_list_profiles` is available and returns profiles like `planner`, `explore`, `executor`, `validator`, and `code-reviewer`.
+5. **MCP servers connected**: Verify MCP tools like `ast-grep_find_code`, `context7_resolve-library-id`, `web-search_search_web`, `claude-code_plan_task`, and `claude-code_list_profiles` are available.
 
 ---
 
@@ -174,21 +176,21 @@ Use the update-config skill to update config.
 
 ### Agents Not Working
 
-1. Verify `opencode.json` has the `agent` section with `build`, `orchestrator`, and `code-reviewer` defined
-2. Check that the orchestrator model (uses currently selected session model) is accessible
-3. Antigravity models require auth — ensure `antigravity-accounts.json` is configured
-4. For planning agents (prometheus-lite, metis, momus), verify they're defined in the agent section
+1. Verify `opencode.json` has the `agent` section with `build`, `plan`, and `orchestrator` defined
+2. Verify the `claude-code` MCP is connected and `claude-code_list_profiles` is available
+3. Verify the prompts for `build`, `plan`, and `orchestrator` explicitly route planning, execution, verification, and review through Claude Code profiles
+4. Antigravity models require auth — ensure `antigravity-accounts.json` is configured
 
 ### MCP Servers Not Connecting
 
-1. Check `opencode.json` has the `mcpServers` section configured
+1. Check `opencode.json` has the `mcp` section configured
 2. Verify MCP server packages are installed (some require npm/npx)
-3. Check `MCP-README.md` for server-specific installation instructions
+3. Check the server entry in `opencode.json` for its exact command and environment
 4. Common servers and their requirements:
    - `ast-grep`: Requires ast-grep CLI (`brew install ast-grep`)
    - `context7`: No external dependencies
    - `web-search`: No external dependencies (uses DuckDuckGo/SearXNG)
-   - `cloudflare`: Requires Cloudflare account and API token
+   - `claude-code`: Requires the `claude` CLI on `PATH` and an authenticated Claude Code setup
 
 ### Tool Mapping (for Skills Written for Claude Code)
 
@@ -212,9 +214,10 @@ When skills reference Claude Code tools, OpenCode uses these equivalents:
 ├── opencode.json               # Main config (models, agents, commands, providers, MCP)
 ├── AGENTS.md                   # Agent instructions and coding standards
 ├── README.md                   # Repository overview
-├── MCP-README.md               # MCP server configuration guide
 ├── package.json                # Dependencies (@opencode-ai/plugin)
 ├── node_modules/               # Installed packages
+├── mcp/
+│   └── claude-code-server.mjs  # Local Claude Code CLI MCP server
 ├── .agents/
 │   ├── plans/                  # Implementation plans (generated by prometheus-lite)
 │   └── drafts/                 # Draft plans and interview notes

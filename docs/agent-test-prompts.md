@@ -1,5 +1,7 @@
 # Agent Test Prompts
 
+> Legacy reference: the repo now routes specialized work through the `claude-code` MCP profiles rather than OpenCode subagents. Keep this file only as historical prompt material unless it is rewritten for the MCP profile model.
+
 Use these prompts to verify each agent responds correctly to its role. Each prompt is designed to exercise the agent's specific specialty. Run them by invoking the agent directly (e.g. `@explore`, `@executor`).
 
 ---

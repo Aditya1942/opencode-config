@@ -1,5 +1,7 @@
 # Model & Agent Management Guide
 
+> Legacy note: this guide still documents the removed OpenCode subagent fleet. The active config now keeps a single `build` agent and routes specialization through the `claude-code` MCP `profile` parameter.
+
 How to replace, add, or reconfigure models and agents in the OpenCode multi-agent system.
 
 ---

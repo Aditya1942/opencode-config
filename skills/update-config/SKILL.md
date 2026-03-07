@@ -46,7 +46,7 @@ Run the following commands to update everything:
 
 After updating, verify these components are present:
 
-- **MCPs (8):** memory, sequential-thinking, time, ast-grep, context7, grep-app, web-search, cloudflare
+- **MCPs (8):** memory, sequential-thinking, time, ast-grep, context7, grep-app, web-search, claude-code
 - **Claudepowers skills (5):** code-review, explanatory-output, frontend-design, readme-driven-code-understanding, security-guidance
 - **Other skills:** team-agents, update-config
 - **Superpowers skills (15):** symlinked from superpowers repo

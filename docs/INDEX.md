@@ -1,5 +1,7 @@
 # OpenCode Configuration Repository - Architecture Codemap
 
+> Legacy note: this codemap still describes the old OpenCode subagent architecture. The active runtime model is now a single `build` agent plus specialization through the `claude-code` MCP profiles.
+
 **Last Updated:** 2026-03-06  
 **Repository:** OpenCode.ai Configuration  
 **Type:** Config-only, multi-agent orchestration system  
@@ -466,4 +468,3 @@ Lightweight:   GPT-5 Nano
 **Confidence Score:** 0.95  
 **Last Generated:** 2026-03-06 by doc-updater agent  
 **Freshness:** All config verified against opencode.json as of 15:40 UTC
-
