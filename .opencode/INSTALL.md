@@ -7,7 +7,7 @@ This document is designed for an AI agent to follow step-by-step to install this
 - **OpenCode configuration** with multi-model Antigravity provider support (Claude, Gemini)
 - **My Skills collection** — 91+ consolidated workflow and domain skills (TDD, debugging, React, etc.)
 - **Claude Code MCP profiles** — all three primary agents maximize `claude-code` usage for planning, exploration, implementation, validation, review, docs, cleanup, and architecture work
-- **Custom slash commands** (`/brainstorm`, `/write-plan`, `/execute-plan`, `/antigravity-quota`)
+- **Custom slash commands** (`/brainstorm`, `/write-plan`, `/execute-plan`, `/claude-code-usage`, `/antigravity-quota`)
 - **MCP servers** — memory, sequential-thinking, time, ast-grep, context7, grep-app, web-search, claude-code
 
 ---
@@ -30,7 +30,7 @@ Before starting, verify these are installed. If any are missing, inform the user
 |------|---------|
 | Antigravity Auth | Required for Antigravity model providers (Claude/Gemini via Google proxy) |
 | Playwright | Browser automation (`npx playwright install`) |
-| Claude Code CLI | Required behind the `claude-code` MCP bridge (`claude --version`) |
+| Claude Code CLI | Required for the `claude-code` local MCP (`claude --version`) |
 
 ---
 
@@ -79,7 +79,11 @@ cd ~/.config/opencode && npm install
 
 This installs the `@opencode-ai/plugin` package required by the superpowers plugin.
 
-### Step 4: Install the Global Claude Code MCP Bridge
+### Step 4 (optional): Claude Code MCP bridge for other IDEs
+
+The `claude-code` MCP is configured as **local** in `opencode.json`: OpenCode starts it when you run OpenCode and stops it when you exit. No separate service is required for OpenCode. The `command` array uses an absolute path to `mcp/claude-code-server.mjs`; if your config lives elsewhere, edit the path in `opencode.json` to match.
+
+If you want to use the same `claude-code` MCP from another IDE (e.g. Cursor, VS Code) that connects via HTTP, install the global bridge:
 
 ```bash
 npm install -g --prefix ~/.local mcp-proxy
@@ -91,7 +95,7 @@ launchctl kickstart -k "gui/$(id -u)/io.aditya.opencode.claude-code-mcp"
 curl -fsS http://127.0.0.1:4318/mcp >/dev/null || true
 ```
 
-This exposes the custom `claude-code` MCP at `http://127.0.0.1:4318/mcp` for OpenCode and other MCP-aware IDEs.
+That exposes the `claude-code` MCP at `http://127.0.0.1:4318/mcp` for other MCP-aware IDEs. For OpenCode-only use, you can skip this step.
 
 ### Step 5: Verify File Structure
 
@@ -138,7 +142,7 @@ After restart, verify the installation by asking the user to confirm these work:
 3. **Primary agents configured**: Check that `build`, `plan`, and `orchestrator` are visible in the agent hierarchy and that each is described as routing work through `claude-code`.
 4. **Claude profiles available**: Verify `claude-code_list_profiles` is available and returns profiles like `planner`, `explore`, `executor`, `validator`, and `code-reviewer`.
 5. **MCP servers connected**: Verify MCP tools like `ast-grep_find_code`, `context7_resolve-library-id`, `web-search_search_web`, `claude-code_plan_task`, and `claude-code_list_profiles` are available.
-6. **Bridge reachable**: `curl -i http://127.0.0.1:4318/mcp` should return an HTTP response from the local bridge.
+6. **Claude Code MCP**: With local config, `claude-code_list_profiles` should be available after OpenCode starts. If you use the optional HTTP bridge for other IDEs, `curl -i http://127.0.0.1:4318/mcp` should return a response from the bridge.
 
 ---
 
@@ -207,7 +211,7 @@ Use the update-config skill to update config.
    - `ast-grep`: Requires ast-grep CLI (`brew install ast-grep`)
    - `context7`: No external dependencies
    - `web-search`: No external dependencies (uses DuckDuckGo/SearXNG)
-   - `claude-code`: Requires the `claude` CLI on `PATH`, an authenticated Claude Code setup, and the localhost bridge service at `http://127.0.0.1:4318/mcp`
+   - `claude-code`: Requires the `claude` CLI on `PATH` and an authenticated Claude Code setup. OpenCode runs it as a local MCP (no bridge required). If you use the optional HTTP bridge for other IDEs, ensure it is running at `http://127.0.0.1:4318/mcp`.
 
 ### Tool Mapping (for Skills Written for Claude Code)
 

@@ -53,6 +53,7 @@ team-agents, update-config
 | `/brainstorm` | Invoke brainstorming skill before creative work |
 | `/write-plan` | Create detailed implementation plan |
 | `/execute-plan` | Execute plan in batches with review checkpoints |
+| `/claude-code-usage` | Show Claude Code MCP usage and API quota |
 | `/antigravity-quota` | Check Antigravity API quota for all accounts |
 
 ---
@@ -76,6 +77,7 @@ Routing details: load the **team-agents** skill.
 | `/brainstorm` | Invoke brainstorming skill before creative work |
 | `/write-plan` | Create implementation plan with tasks |
 | `/execute-plan` | Execute plan in batches with checkpoints |
+| `/claude-code-usage` | Show Claude Code MCP usage (from .opencode/claude-code-usage.json) and API quota |
 | `/antigravity-quota` | Check Antigravity API quota (plugin) |
 
 ### Skills
@@ -99,7 +101,7 @@ Use the `skill` tool to load skills; never read `SKILL.md` directly.
 | **context7** | Web / Search | Library documentation | resolve-library-id, get-library-docs; used by Librarian |
 | **grep-app** | Web / Search | GitHub code search | searchCode, grep_query; used by Librarian |
 | **web-search** | Web / Search | Free web search + URL fetching | search_web, fetch_url; no API key; used by Librarian |
-| **claude-code** | Automation | Localhost remote MCP bridge for the custom Claude Code CLI wrapper | `list_profiles`, `list_agents`, `list_bridge_prompts`, `plan_task`, `execute_task`, `run_skill`, `run_prompt`; exposed at `http://127.0.0.1:4318/mcp` for OpenCode and other MCP-aware IDEs |
+| **claude-code** | Automation | Local MCP (started/stopped with OpenCode); custom Claude Code CLI wrapper | `list_profiles`, `list_agents`, `list_bridge_prompts`, `plan_task`, `execute_task`, `run_skill`, `run_prompt`; optional HTTP bridge at `http://127.0.0.1:4318/mcp` for other IDEs |
 
 MCP config: `opencode.json`.
 
@@ -107,7 +109,7 @@ MCP config: `opencode.json`.
 
 | Plugin | Purpose |
 |--------|---------|
-| `custom-hooks.js` | Context window monitor, tool output truncator, model fallback, preemptive compaction, rules injector |
+| `custom-hooks.js` | Context window monitor, tool output truncator, model fallback, preemptive compaction, rules injector, **claude-code MCP usage tracker** (writes `.opencode/claude-code-usage.json`) |
 
 ---
 
@@ -182,7 +184,7 @@ Or inside OpenCode, run `/update-config`.
 - Git
 - Bun (or Node.js)
 - Antigravity auth (optional — for Antigravity model providers)
-- Claude Code CLI (optional — required behind the `claude-code` MCP bridge)
+- Claude Code CLI (required for the `claude-code` local MCP)
 
 ---
 

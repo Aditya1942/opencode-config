@@ -55,9 +55,11 @@ the `claude` CLI installed and local dev marketplace enabled in settings.
 
 | Command | Purpose |
 |---------|---------|
+| `/which-mcp` | Choose worker MCP for current task (claude-code vs cursor-agent; quota-aware) |
 | `/brainstorm` | Invoke brainstorming skill before creative work |
 | `/write-plan` | Create implementation plan with tasks |
 | `/execute-plan` | Execute plan in batches with checkpoints |
+| `/claude-code-usage` | Show Claude Code MCP usage and API quota |
 | `/antigravity-quota` | Check Antigravity API quota |
 
 ## Code Style
@@ -89,14 +91,18 @@ the `claude` CLI installed and local dev marketplace enabled in settings.
 
 ## Agent Hierarchy
 
-| Agent | Primary Model | Fallback Model | Role |
-|-------|---------------|----------------|------|
-| `build` | (user-selected) | - | Primary OpenCode agent. Maximizes `claude-code` MCP usage for planning, execution, validation, and review instead of OpenCode subagents. |
-| `plan` | (user-selected) | - | Planning-focused entry point. Uses Claude Code for planning plus plan validation/review. |
-| `orchestrator` | (user-selected) | - | Coordination-focused entry point. Sequences planning, exploration, implementation, validation, and review through Claude Code profiles. |
+| Agent | Model | Mode | Role |
+|-------|--------|------|------|
+| `build` | (user-selected) | primary | Uses mcp-selection; for big/multi-step tasks spawns @sequencer then @executor; otherwise does work via chosen MCP. |
+| `plan` | (user-selected) | primary | Planning only. Uses mcp-selection; chosen MCP for plan + validation/review. |
+| `orchestrator` | (user-selected) | primary | **Never performs tasks directly.** Always uses subagent-driven-development + MCP (claude-code or cursor-agent). All work via @sequencer, @executor, @explorer or MCP tools only. |
+| `sequencer` | Claude Sonnet | subagent | Takes big task → mcp-selection → chosen MCP to plan and output ordered steps. Spawn first. |
+| `executor` | Claude Haiku | subagent | Takes plan → mcp-selection → executes steps sequentially via chosen MCP (validate + review per step). Spawn after sequencer. |
+| `explorer` | Claude Haiku | subagent | Explores codebase via chosen MCP (explore/general/librarian); outputs structured summary. Read-only. Use @explorer for mapping or onboarding. |
 
-**Claude specialization layer:** Use the `claude-code` MCP with a `profile` value such as `explore`, `general`, `librarian`, `executor`, `validator`, `code-reviewer`, `planner`, `architect`, `build-error-resolver`, `refactor-cleaner`, `doc-updater`, `tdd-guide`, or `skill-chooser`. Token-heavy work such as exploration, broad search, multi-file comprehension, and research must be routed through Claude Code when a matching profile exists. For any task that produces changes, Claude-backed validation and review are mandatory before completion.
-Full routing details: load `team-agents` skill.
+**MCP selection:** Invoke **mcp-selection** at task start. **claude-code** (Opus/Sonnet) for complex tasks; **cursor-agent** otherwise; **cursor-agent** for all when quota is full. See `docs/mcp-selection-guide.md`. **Subagent flow:** For big/multi-step tasks, spawn @sequencer then @executor; see **sequential-task-runner** skill.
+
+**Orchestrator rule (mandatory):** The orchestrator **always** uses **subagent-driven-development** and the worker **MCP** (claude-code or cursor-agent). It **never** performs the task directly: no local read/write/edit/bash for task work. All work is done by subagents (@sequencer, @executor, @explorer) or by calling MCP tools (plan_task, execute_task, etc.). Invoke my-skills:subagent-driven-development at session start.
 
 ## Skills
 
@@ -107,6 +113,9 @@ Use the `skill` tool — never read SKILL.md files directly.
 
 | Skill | When to Use |
 |-------|-------------|
+| `mcp-selection` | At task start to choose claude-code vs cursor-agent; when quota may be full |
+| `sequential-task-runner` | Big or multi-step task: spawn @sequencer then @executor to complete sequentially via MCPs |
+| `subagent-driven-development` | **Orchestrator always.** All work via subagents + MCP; never perform task directly. |
 | `brainstorming` | Before ANY creative/feature work (mandatory) |
 | `test-driven-development` | Before writing implementation code |
 | `systematic-debugging` | When encountering bugs, before proposing fixes |
