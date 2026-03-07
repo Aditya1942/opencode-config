@@ -95,7 +95,7 @@ the `claude` CLI installed and local dev marketplace enabled in settings.
 | `plan` | (user-selected) | - | Planning-focused entry point. Uses Claude Code for planning plus plan validation/review. |
 | `orchestrator` | (user-selected) | - | Coordination-focused entry point. Sequences planning, exploration, implementation, validation, and review through Claude Code profiles. |
 
-**Claude specialization layer:** Use the `claude-code` MCP with a `profile` value such as `explore`, `general`, `librarian`, `executor`, `validator`, `code-reviewer`, `planner`, `architect`, `build-error-resolver`, `refactor-cleaner`, `doc-updater`, `tdd-guide`, or `skill-chooser`. For any task that produces changes, Claude-backed validation and review are mandatory before completion.
+**Claude specialization layer:** Use the `claude-code` MCP with a `profile` value such as `explore`, `general`, `librarian`, `executor`, `validator`, `code-reviewer`, `planner`, `architect`, `build-error-resolver`, `refactor-cleaner`, `doc-updater`, `tdd-guide`, or `skill-chooser`. Token-heavy work such as exploration, broad search, multi-file comprehension, and research must be routed through Claude Code when a matching profile exists. For any task that produces changes, Claude-backed validation and review are mandatory before completion.
 Full routing details: load `team-agents` skill.
 
 ## Skills

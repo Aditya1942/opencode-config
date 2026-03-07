@@ -141,7 +141,7 @@ const SHARED_PROPERTIES = {
   outputFormat: {
     type: 'string',
     enum: OUTPUT_FORMATS,
-    description: 'Print output format. Defaults to json for MCP task tools.',
+    description: 'Print output format. Task tools default to stream-json so progress events can be surfaced.',
   },
   inputFormat: {
     type: 'string',
@@ -1266,6 +1266,148 @@ function extractPrimaryText(value) {
   return undefined
 }
 
+function parseJsonLines(value) {
+  const trimmed = value.trim()
+
+  if (!trimmed) {
+    return []
+  }
+
+  return trimmed
+    .split('\n')
+    .map((line) => safeJsonParse(line.trim()))
+    .filter(Boolean)
+}
+
+function clipText(value, maxLength = 160) {
+  if (typeof value !== 'string') {
+    return ''
+  }
+
+  const normalized = value.replace(/\s+/g, ' ').trim()
+  if (normalized.length <= maxLength) {
+    return normalized
+  }
+
+  return `${normalized.slice(0, maxLength - 3)}...`
+}
+
+function summarizeContentBlock(block) {
+  if (!block || typeof block !== 'object') {
+    return null
+  }
+
+  if (typeof block.text === 'string' && block.text.trim()) {
+    return clipText(block.text)
+  }
+
+  if (block.type === 'tool_use') {
+    const toolName = typeof block.name === 'string' ? block.name : 'unknown-tool'
+    return `Tool: ${toolName}`
+  }
+
+  if (block.type === 'thinking' || block.type === 'redacted_thinking') {
+    return 'Thinking'
+  }
+
+  return null
+}
+
+function summarizeClaudeEvent(event) {
+  if (!event || typeof event !== 'object') {
+    return null
+  }
+
+  if (event.type === 'system') {
+    if (event.subtype === 'init') {
+      const model = typeof event.model === 'string' ? event.model : 'default'
+      return `Claude Code started (${model})`
+    }
+
+    if (typeof event.subtype === 'string') {
+      return `System: ${event.subtype}`
+    }
+  }
+
+  if (event.type === 'assistant') {
+    const content = Array.isArray(event.message?.content)
+      ? event.message.content
+      : Array.isArray(event.content)
+        ? event.content
+        : []
+
+    for (const block of content) {
+      const summary = summarizeContentBlock(block)
+      if (summary) {
+        return summary
+      }
+    }
+
+    return 'Assistant updated'
+  }
+
+  if (event.type === 'result') {
+    const resultText = extractPrimaryText(event)
+    return resultText ? clipText(resultText) : 'Claude Code finished'
+  }
+
+  if (event.type === 'error') {
+    const errorText = typeof event.error === 'string'
+      ? event.error
+      : typeof event.message === 'string'
+        ? event.message
+        : 'Claude Code reported an error'
+    return clipText(errorText)
+  }
+
+  return null
+}
+
+function parseClaudeOutput(stdout) {
+  const trimmed = stdout.trim()
+  if (!trimmed) {
+    return {
+      parsedOutput: null,
+      assistantText: null,
+      streamEvents: [],
+    }
+  }
+
+  const parsedJson = safeJsonParse(trimmed)
+  if (parsedJson) {
+    return {
+      parsedOutput: parsedJson,
+      assistantText: extractPrimaryText(parsedJson) ?? null,
+      streamEvents: [],
+    }
+  }
+
+  const streamEvents = parseJsonLines(trimmed)
+  if (streamEvents.length === 0) {
+    return {
+      parsedOutput: null,
+      assistantText: null,
+      streamEvents: [],
+    }
+  }
+
+  const finalResult = [...streamEvents].reverse().find((event) => event?.type === 'result') ?? null
+  const lastAssistant = [...streamEvents].reverse().find((event) => event?.type === 'assistant') ?? null
+  const assistantText = extractPrimaryText(finalResult)
+    ?? extractPrimaryText(lastAssistant)
+    ?? null
+
+  return {
+    parsedOutput: {
+      type: 'stream-json',
+      events: streamEvents,
+      result: finalResult,
+    },
+    assistantText,
+    streamEvents,
+  }
+}
+
 function formatToolResult({
   toolName,
   prompt,
@@ -1277,7 +1419,11 @@ function formatToolResult({
   stderr,
   parsedOutput,
 }) {
-  const assistantText = extractPrimaryText(parsedOutput) ?? stdout.trim()
+  const parsed = parseClaudeOutput(stdout)
+  const normalizedParsedOutput = parsed.parsedOutput ?? parsedOutput
+  const assistantText = parsed.assistantText
+    ?? extractPrimaryText(parsedOutput)
+    ?? stdout.trim()
   const header = [
     `[${toolName}]`,
     `model: ${model ?? 'default'}`,
@@ -1320,7 +1466,7 @@ function formatToolResult({
       assistantText: assistantText || null,
       stderr: stderr.trim() || null,
       stdout: stdout.trim() || null,
-      parsedOutput,
+      parsedOutput: normalizedParsedOutput,
     },
   }
 }
@@ -1328,6 +1474,7 @@ function formatToolResult({
 async function runClaudeTask(rawArgs) {
   const prompt = requireString(rawArgs.prompt, 'prompt')
   const profileName = optionalString(rawArgs.profile)
+  const progressToken = rawArgs.progressToken
   const agent = optionalString(rawArgs.agent)
   const bridgeOpenCode = ensureBoolean(rawArgs.bridgeOpenCode, 'bridgeOpenCode') ?? true
   const bridgeServerName = optionalString(rawArgs.bridgeServerName)
@@ -1354,9 +1501,13 @@ async function runClaudeTask(rawArgs) {
   const effort = ensureEnum(rawArgs.effort, 'effort', EFFORT_LEVELS)
   const settings = ensureJsonOrString(rawArgs.settings, 'settings')
   const settingSources = ensureStringArray(rawArgs.settingSources, 'settingSources')
-  const outputFormat = ensureEnum(rawArgs.outputFormat, 'outputFormat', OUTPUT_FORMATS)
+  const explicitOutputFormat = ensureEnum(
+    rawArgs.outputFormat,
+    'outputFormat',
+    OUTPUT_FORMATS
+  )
   const inputFormat = ensureEnum(rawArgs.inputFormat, 'inputFormat', INPUT_FORMATS)
-  const includePartialMessages = ensureBoolean(
+  const explicitIncludePartialMessages = ensureBoolean(
     rawArgs.includePartialMessages,
     'includePartialMessages'
   )
@@ -1388,6 +1539,10 @@ async function runClaudeTask(rawArgs) {
   const verbose = ensureBoolean(rawArgs.verbose, 'verbose')
   const betas = ensureStringArray(rawArgs.betas, 'betas')
   const timeoutMs = ensureInteger(rawArgs.timeoutMs, 'timeoutMs') ?? DEFAULT_TIMEOUT_MS
+  const outputFormat = explicitOutputFormat
+    ?? (rawArgs.toolName ? 'stream-json' : undefined)
+  const includePartialMessages = explicitIncludePartialMessages
+    ?? (outputFormat === 'stream-json' ? true : undefined)
   const baseDirectory = process.cwd()
   const cwd = rawArgs.cwd
     ? await resolveDirectory(rawArgs.cwd, baseDirectory, 'cwd')
@@ -1459,6 +1614,8 @@ async function runClaudeTask(rawArgs) {
     args,
     cwd,
     timeoutMs,
+    outputFormat,
+    progressToken,
   })
 
   return formatToolResult({
@@ -1471,7 +1628,7 @@ async function runClaudeTask(rawArgs) {
   })
 }
 
-function runClaudeProcess({ args, cwd, timeoutMs }) {
+function runClaudeProcess({ args, cwd, timeoutMs, outputFormat, progressToken }) {
   const command = process.env.CLAUDE_CODE_BIN || 'claude'
 
   return new Promise((resolve) => {
@@ -1484,23 +1641,80 @@ function runClaudeProcess({ args, cwd, timeoutMs }) {
     let stdout = ''
     let stderr = ''
     let timedOut = false
+    let streamBuffer = ''
+    let progressCount = 0
+    let lastProgressMessage = ''
+
+    const emitProgress = (message) => {
+      const normalizedMessage = clipText(message)
+      if (!normalizedMessage || normalizedMessage === lastProgressMessage) {
+        return
+      }
+
+      progressCount += 1
+      lastProgressMessage = normalizedMessage
+      sendProgress(progressToken, progressCount, normalizedMessage)
+    }
 
     const timeoutHandle = setTimeout(() => {
       timedOut = true
+      emitProgress(`Claude Code timed out after ${timeoutMs}ms`)
       child.kill('SIGTERM')
       setTimeout(() => child.kill('SIGKILL'), 2000).unref()
     }, timeoutMs)
 
+    emitProgress('Starting Claude Code')
+
+    const flushStreamBuffer = (force = false) => {
+      if (outputFormat !== 'stream-json') {
+        return
+      }
+
+      const lines = streamBuffer.split('\n')
+      if (!force) {
+        streamBuffer = lines.pop() ?? ''
+      } else {
+        streamBuffer = ''
+      }
+
+      for (const line of lines) {
+        const event = safeJsonParse(line.trim())
+        if (!event) {
+          continue
+        }
+
+        const summary = summarizeClaudeEvent(event)
+        if (summary) {
+          emitProgress(summary)
+        }
+      }
+    }
+
     child.stdout.on('data', (chunk) => {
-      stdout += chunk.toString()
+      const text = chunk.toString()
+      stdout += text
+      streamBuffer += text
+      flushStreamBuffer()
     })
 
     child.stderr.on('data', (chunk) => {
-      stderr += chunk.toString()
+      const text = chunk.toString()
+      stderr += text
+
+      const lines = text
+        .split('\n')
+        .map((line) => clipText(line))
+        .filter(Boolean)
+
+      for (const line of lines) {
+        emitProgress(`stderr: ${line}`)
+      }
     })
 
     child.on('error', (error) => {
       clearTimeout(timeoutHandle)
+      flushStreamBuffer(true)
+      emitProgress(error.message)
       resolve({
         exitCode: 1,
         stdout,
@@ -1511,11 +1725,18 @@ function runClaudeProcess({ args, cwd, timeoutMs }) {
 
     child.on('close', (exitCode) => {
       clearTimeout(timeoutHandle)
+      flushStreamBuffer(true)
 
       const parsedOutput = safeJsonParse(stdout.trim())
       const timeoutMessage = timedOut
         ? `Claude Code timed out after ${timeoutMs}ms.`
         : ''
+      const finalSummary = timedOut
+        ? timeoutMessage
+        : exitCode === 0
+          ? 'Claude Code finished'
+          : `Claude Code exited with code ${exitCode ?? 1}`
+      emitProgress(finalSummary)
 
       resolve({
         exitCode: exitCode ?? 1,
@@ -1547,6 +1768,22 @@ function sendError(id, code, message, data) {
       code,
       message,
       ...(data === undefined ? {} : { data }),
+    },
+  })
+}
+
+function sendProgress(progressToken, progress, message) {
+  if (progressToken === undefined || progressToken === null) {
+    return
+  }
+
+  sendMessage({
+    jsonrpc: JSON_RPC_VERSION,
+    method: 'notifications/progress',
+    params: {
+      progressToken,
+      progress,
+      ...(message ? { message } : {}),
     },
   })
 }
@@ -1597,13 +1834,18 @@ async function handleRequest(message) {
 
         const toolName = requireString(params.name, 'name')
         const handler = toolHandlers[toolName]
+        const progressToken = params?._meta?.progressToken
 
         if (!handler) {
           sendError(id, -32602, `Unknown tool: ${toolName}`)
           return
         }
 
-        const result = await handler(params.arguments ?? {})
+        const result = await handler({
+          ...(params.arguments ?? {}),
+          _meta: params._meta,
+          progressToken,
+        })
         sendResponse(id, result)
         return
       }

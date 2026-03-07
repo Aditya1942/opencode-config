@@ -7,7 +7,7 @@ description: "Use when routing work through the claude-code MCP profiles instead
 
 ## Overview
 
-This repo no longer uses OpenCode subagents for execution. The `claude-code` MCP is the specialization layer and should be the default worker path whenever a matching Claude profile exists.
+This repo no longer uses OpenCode subagents for execution. The `claude-code` MCP is the specialization layer and should be the default worker path whenever a matching Claude profile exists, especially for token-heavy work.
 
 When a task needs a specialized role, call the Claude MCP with a `profile` instead of dispatching an OpenCode agent.
 
@@ -26,6 +26,7 @@ Use this skill when:
 - Pass `profile` to select the role Claude should emulate
 - Use `claude-code.list_bridge_prompts` to inspect bridged skills and command aliases
 - Use `claude-code.run_skill` to invoke a bridged skill or command workflow inside Claude Code
+- Route token-heavy work through Claude Code, especially exploration, broad search, multi-file comprehension, and large-context research
 - For any change-producing task, require Claude-backed validation and code review before completion
 - Do not dispatch OpenCode subagents for tasks now covered by Claude profiles
 
@@ -62,6 +63,7 @@ Use this skill when:
 
 - `profile` sets Claude Code's system prompt for the run
 - prefer the narrowest profile that matches the task
+- token-heavy work should default to Claude Code even when local tools could technically do part of it
 - if a task spans multiple concerns, split it into multiple Claude MCP calls instead of overloading one profile
 
 ### Skill Invocation
@@ -86,5 +88,6 @@ For larger tasks:
 - Do not rely on removed OpenCode subagents like `@explore` or `@executor`
 - Do not keep routing through legacy orchestrator workflows
 - Do not use a broad implementation profile when a narrower analysis or review profile fits
+- Do not keep token-heavy exploration or research local when Claude Code has a matching profile
 - Do not skip Claude-backed validation after Claude performs edits
 - Do not skip Claude-backed code review after Claude performs edits

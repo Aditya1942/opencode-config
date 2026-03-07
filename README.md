@@ -28,7 +28,7 @@ The agent will fetch the installation document and execute every step to set up 
 
 ### Agent Architecture
 
-OpenCode now uses a single primary agent layer and pushes as much work as possible into the `claude-code` MCP.
+OpenCode now uses a single primary agent layer and pushes as much work as possible into the `claude-code` MCP, with token-heavy work explicitly routed there.
 
 | Agent | Model | Mode | Role |
 |-------|-------|------|------|
@@ -36,7 +36,7 @@ OpenCode now uses a single primary agent layer and pushes as much work as possib
 | `plan` | User-selected | build/plan | Planning-focused entry point using Claude Code for planning plus plan validation/review |
 | `orchestrator` | User-selected | build/plan | Coordination-focused entry point using Claude Code end-to-end, with mandatory review/verification on change-producing flows |
 
-Instead of OpenCode subagents, the repo uses Claude Code profiles such as `planner`, `explore`, `general`, `librarian`, `executor`, `validator`, `code-reviewer`, `architect`, `build-error-resolver`, `refactor-cleaner`, `doc-updater`, and `tdd-guide`. For any task that produces changes, Claude-backed validation and review are expected before completion. See the `team-agents` skill for routing guidance.
+Instead of OpenCode subagents, the repo uses Claude Code profiles such as `planner`, `explore`, `general`, `librarian`, `executor`, `validator`, `code-reviewer`, `architect`, `build-error-resolver`, `refactor-cleaner`, `doc-updater`, and `tdd-guide`. Token-heavy work like exploration, broad code comprehension, and research should be routed through Claude Code rather than handled locally. For any task that produces changes, Claude-backed validation and review are expected before completion. See the `team-agents` skill for routing guidance.
 
 ### 91+ Skills
 
