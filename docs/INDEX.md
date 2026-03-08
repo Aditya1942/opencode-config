@@ -459,7 +459,8 @@ Lightweight:   GPT-5 Nano
 ## 📝 Related Documentation
 
 - **AGENTS.md** — Full architecture guide, agent hierarchy, code style, anti-patterns
-- **docs/mcp-selection-guide.md** — When to use claude-code vs cursor-agent MCP; quota fallback
+- **docs/worker-selection-guide.md** — When to use claude vs agent CLI; quota fallback. CLI syntax: docs/cli-claude-code.md, docs/cli-cursor-agent.md.
+- **docs/ultron-design.md** — Ultron planning sub-agent: per-step skills and worker assignment; when to spawn, output format, design principles.
 - **.agents/plans/** — Generated execution plans from prometheus-lite
 - **.agents/drafts/** — Interview notes and decision records
 - **skills/** — 93 domain-specific skill packs organized by category

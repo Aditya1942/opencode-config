@@ -121,6 +121,8 @@ Task Received (e.g., "Implement feature X")
 ✅ Track todos in `.agents/`  
 ✅ Update user with clear next actions  
 
+**Token optimization:** Orchestrator is phased (bootstrap → route → dispatch → close); agent CLI default; subagents (Sonnet/Haiku) do planning/execution so orchestrator does minimal reasoning per turn.
+
 ---
 
 ## 🎯 Model Routing Strategy

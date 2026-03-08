@@ -1,93 +1,86 @@
 ---
 name: team-agents
-description: "Use when routing work through the claude-code MCP profiles instead of OpenCode subagents"
+description: "Use when routing work through the claude or agent CLI (via shell) instead of OpenCode subagents"
 ---
 
-# Claude Code Routing
+# Worker CLI Routing
 
 ## Overview
 
-This repo no longer uses OpenCode subagents for execution. The `claude-code` MCP is the specialization layer and should be the default worker path whenever a matching Claude profile exists, especially for token-heavy work.
+This repo routes specialized work through the **claude** or **agent** CLI, invoked **via shell**. There is no MCP for planning/execution. Use docs/cli-claude-code.md and docs/cli-cursor-agent.md for exact syntax.
 
-When a task needs a specialized role, call the Claude MCP with a `profile` instead of dispatching an OpenCode agent.
+When a task needs a specialized role, run the chosen CLI via shell with the appropriate prompt and mode/profile equivalent.
 
 ## When to Use
 
 Use this skill when:
 - the task would previously have gone to an OpenCode subagent
-- you need to choose the right Claude profile for planning, exploration, research, implementation, or review
-- you want to invoke bridged OpenCode skills inside Claude Code
+- you need to choose the right profile or mode for planning, exploration, research, implementation, or review
+- you are invoking the worker CLI via shell and need the routing table
 
 ## Checklist
 
-- Use `claude-code.list_profiles` to inspect available Claude profiles
-- Use `claude-code.plan_task` for plan-first work
-- Use `claude-code.execute_task` for analysis, implementation, verification, and review
-- Pass `profile` to select the role Claude should emulate
-- Use `claude-code.list_bridge_prompts` to inspect bridged skills and command aliases
-- Use `claude-code.run_skill` to invoke a bridged skill or command workflow inside Claude Code
-- Route token-heavy work through Claude Code, especially exploration, broad search, multi-file comprehension, and large-context research
-- For any change-producing task, require Claude-backed validation and code review before completion
-- Do not dispatch OpenCode subagents for tasks now covered by Claude profiles
+- Use my-skills:worker-selection to choose worker CLI (claude or agent).
+- Use docs/cli-claude-code.md or docs/cli-cursor-agent.md for invocation syntax.
+- For **claude**: plan = `claude -p "..." --output-format json --permission-mode plan`; execute = `--permission-mode acceptEdits`; profile = `--append-system-prompt` with profile text (see docs/cli-claude-code.md for profile names and roles).
+- For **agent**: plan = `agent -p "..." --trust --approve-mcps --mode plan`; execute = `--mode agent --force`.
+- Route token-heavy work through the chosen CLI, especially exploration, broad search, multi-file comprehension, and large-context research.
+- For any change-producing task, require validation and code review (via CLI or executor) before completion.
+- Do not dispatch OpenCode subagents for tasks now covered by CLI profiles/modes.
 
 ## Entry Agents
 
-| Agent | Expected Claude Code Usage |
+| Agent | Expected Worker CLI Usage |
 |-------|-----------------------------|
-| `build` | Use Claude Code as the default worker layer for planning, implementation, validation, and review |
-| `plan` | Use Claude Code for plan creation plus plan validation/review before returning |
-| `orchestrator` | Use Claude Code end-to-end across planning, context gathering, implementation, validation, and review |
+| `build` | Use chosen CLI via shell as the default worker layer for planning, implementation, validation, and review |
+| `plan` | **Must** spawn @ultron for plan creation (skill-chooser + worker-selection per step); then optional plan validation/review via chosen CLI before returning |
+| `orchestrator` | Use chosen CLI via shell end-to-end across planning, context gathering, implementation, validation, and review |
 
-## Routing
+## Planning Sub-Agent (Ultron)
 
-| Task Type | Claude MCP Tool | Profile |
-|-----------|-----------------|---------|
-| Planning only | `plan_task` | `planner` |
-| Codebase search / mapping | `execute_task` | `explore` |
-| Code comprehension | `execute_task` | `general` |
-| Docs / external research | `execute_task` | `librarian` |
-| Mechanical transforms | `execute_task` | `transform` |
-| Validation | `execute_task` | `validator` |
-| Implementation | `execute_task` | `executor` |
-| Code review | `execute_task` | `code-reviewer` |
-| Architecture | `execute_task` | `architect` |
-| Build / type fixes | `execute_task` | `build-error-resolver` |
-| Cleanup / dedupe | `execute_task` | `refactor-cleaner` |
-| Documentation updates | `execute_task` | `doc-updater` |
-| TDD-first execution | `execute_task` | `tdd-guide` |
-| Skill selection | `execute_task` | `skill-chooser` |
+| Agent | Role | When to spawn |
+|-------|------|----------------|
+| `ultron` | Planning sub-agent: reads task; uses **agent** CLI for exploration, summarizing, and small tasks; skill-chooser + worker-selection per step. Outputs structured plan only; does not execute plan steps. | When you need a plan with **per-step skill recommendations** and **per-step worker CLI assignment**; then hand plan to sequencer/executor or run CLI per step yourself. |
+
+## Routing (CLI invocation)
+
+| Task Type | claude (CLI) | agent (CLI) | Profile / mode |
+|-----------|--------------|-------------|-----------------|
+| Planning only | `claude -p "..." --permission-mode plan` | `agent -p "..." --mode plan` | planner / plan |
+| Codebase search / mapping | `claude -p "..." --permission-mode plan` + explore profile | `agent -p "..." --mode ask` | explore / ask |
+| Code comprehension | execute_task equiv + general profile | run_prompt + ask | general / ask |
+| Docs / external research | execute_task equiv + librarian profile | run_prompt | librarian |
+| Mechanical transforms | execute_task equiv + transform profile | run_prompt + agent | transform / agent |
+| Validation | execute_task equiv + validator profile | run_prompt | validator |
+| Implementation | execute_task equiv + executor profile | execute_task equiv (agent --force) | executor / agent |
+| Code review | execute_task equiv + code-reviewer profile | run_prompt | code-reviewer |
+| Architecture | execute_task equiv + architect profile | run_prompt | architect |
+| Build / type fixes | execute_task equiv + build-error-resolver | run_prompt + agent | build-error-resolver / agent |
+| Cleanup / dedupe | execute_task equiv + refactor-cleaner | run_prompt + agent | refactor-cleaner / agent |
+| Documentation updates | execute_task equiv + doc-updater | run_prompt + agent | doc-updater / agent |
+| TDD-first execution | execute_task equiv + tdd-guide | run_prompt + agent | tdd-guide / agent |
+| Skill selection | execute_task equiv + skill-chooser | run_prompt | skill-chooser |
 
 ## Details
 
-### Profile Discipline
+### Profile (claude) / Mode (agent)
 
-- `profile` sets Claude Code's system prompt for the run
-- prefer the narrowest profile that matches the task
-- token-heavy work should default to Claude Code even when local tools could technically do part of it
-- if a task spans multiple concerns, split it into multiple Claude MCP calls instead of overloading one profile
-
-### Skill Invocation
-
-The MCP also bridges local OpenCode skills and command aliases into Claude Code.
-
-- inspect them with `claude-code.list_bridge_prompts`
-- invoke them with `claude-code.run_skill`
-- examples: `brainstorm`, `write-plan`, `brainstorming`, `team-agents`
+- **claude**: Use `--append-system-prompt` with profile text (see docs/cli-claude-code.md for profile names and roles) or `--system-prompt` to replace. Prefer the narrowest profile that matches the task.
+- **agent**: Use `--mode plan` (planning), `--mode ask` (read-only), `--mode agent` (full execution with `--force` for execute_task).
+- If a task spans multiple concerns, split into multiple CLI runs instead of overloading one profile/mode.
 
 ### Complex Tasks
 
 For larger tasks:
-1. `plan_task` with `profile='planner'`
-2. `execute_task` with `profile='explore'` or `profile='general'` for context gathering
-3. `execute_task` with `profile='executor'` for implementation
-4. `execute_task` with `profile='validator'` for validation
-5. `execute_task` with `profile='code-reviewer'` for review
+1. Run CLI in plan mode (claude `--permission-mode plan` or agent `--mode plan`).
+2. Run CLI for context gathering (explore/general profile or ask mode).
+3. Run CLI for implementation (executor profile or agent mode with --force).
+4. Run CLI for validation (validator profile).
+5. Run CLI for review (code-reviewer profile).
 
 ## Anti-Patterns
 
-- Do not rely on removed OpenCode subagents like `@explore` or `@executor`
-- Do not keep routing through legacy orchestrator workflows
-- Do not use a broad implementation profile when a narrower analysis or review profile fits
-- Do not keep token-heavy exploration or research local when Claude Code has a matching profile
-- Do not skip Claude-backed validation after Claude performs edits
-- Do not skip Claude-backed code review after Claude performs edits
+- Do not rely on MCP tools (plan_task, execute_task); use shell and the docs.
+- Do not do token-heavy exploration or implementation locally when the CLI has a matching profile/mode.
+- Do not skip validation after the CLI performs edits.
+- Do not skip code review after the CLI performs edits.

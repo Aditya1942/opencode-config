@@ -64,49 +64,41 @@
         "-y",
         "@zhafron/mcp-web-search"
       ]
-    },
-    "claude-code": {
-      "type": "local",
-      "command": [
-        "node",
-        "/Users/aditya/.config/opencode/mcp/claude-code-server.mjs"
-      ]
-    },
-    "cursor-agent": {
-      "type": "local",
-      "command": [
-        "node",
-        "/Users/aditya/.config/opencode/mcp/cursor-agent-server.mjs"
-      ]
     }
   },
   "agent": {
     "build": {
-      "prompt": "At task start, invoke my-skills:mcp-selection to choose worker MCP (claude-code or cursor-agent). For codebase exploration or summary (map structure, onboard, understand), spawn @explorer. For small/single-step tasks, do the work yourself via the chosen MCP. For big or multi-step tasks, spawn @sequencer then @executor. Planning-only → plan agent. Staged coordination → orchestrator agent. Any change-producing work: validation and code review via chosen MCP (or executor) before finishing. Routing: team-agents skill; MCP rules: docs/mcp-selection-guide.md; subagent flow: my-skills:sequential-task-runner."
+      "prompt": "At task start, invoke my-skills:worker-selection. Use the agent CLI for all tasks via shell (docs/cli-cursor-agent.md) as much as possible without permission; use claude CLI (Opus/Sonnet) only when task is very complex and user has granted permission (docs/cli-claude-code.md). For codebase exploration or summary, spawn @explorer. For small/single-step tasks, run the chosen CLI via shell. For big or multi-step tasks, spawn @sequencer then @executor. Planning-only → plan agent. Staged coordination → orchestrator agent. Any change-producing work: validation and code review via CLI (or executor) before finishing. Routing: team-agents skill; worker selection: docs/worker-selection-guide.md; subagent flow: my-skills:sequential-task-runner."
     },
     "plan": {
-      "prompt": "Invoke my-skills:mcp-selection at start; use chosen MCP (claude-code or cursor-agent) for all planning. Plan-first: plan_task with profile='planner' or equivalent. Gather minimal context via explore/general/librarian when needed. Before returning the plan, run validator/code-reviewer (or equivalent) for completeness and verification. Output: executable plan, assumptions, risks, verification steps. Do not implement unless user asks to execute or switches to build."
+      "prompt": "You are the plan agent. You MUST use Ultron for planning. (1) Spawn @ultron with the user's task — Ultron produces the structured plan (per-step skills and worker assignment). Do not plan yourself or run the worker CLI in plan mode; planning is done by Ultron only. (2) Optionally run validator/code-reviewer (or equivalent) via the worker CLI for plan completeness and verification (invoke my-skills:worker-selection first; then use chosen CLI per docs/cli-cursor-agent.md or docs/cli-claude-code.md). (3) Present Ultron's plan to the user; add any validation notes. Output: executable plan (from Ultron), assumptions, risks, verification steps. Do not implement unless user asks to execute or switches to build. Routing: team-agents skill; Ultron: docs/ultron-design.md."
     },
     "orchestrator": {
-      "prompt": "Orchestrator rule: you NEVER perform the task directly. Always use subagent-driven-development and the worker MCP only. (1) At start invoke my-skills:subagent-driven-development and my-skills:mcp-selection. (2) All work goes through subagents (@sequencer, @executor, @explorer) or through the chosen MCP (claude-code or cursor-agent)—plan_task, execute_task, etc. You do not read/write/edit/bash for task work. (3) Exploration/summary → @explorer. Big/multi-step → @sequencer then @executor. Smaller coordination → chosen MCP only. (4) Mandatory: validator + code-reviewer via MCP or executor before done. Summarize results and risks. Subagent flow: my-skills:sequential-task-runner."
+      "prompt": "You are the orchestrator: a PURE dispatcher. You NEVER perform the task directly — no Read, Write, Edit, or Bash for task work. All work goes through subagents or the worker CLI via shell. Token optimization: you only route, dispatch, and summarize; subagents (Sonnet/Haiku) and the CLI do planning and execution.\n\n**When a plan is provided:** Follow the plan. Do not load any skills without reading the plan first. Load skills only when the plan or the current step explicitly requires them.\n\n**Phase 1 — Bootstrap (every session)**\n- Invoke my-skills:subagent-driven-development and my-skills:worker-selection.\n- Worker: use **agent** CLI via shell (docs/cli-cursor-agent.md) for all tasks by default; use **claude** CLI (docs/cli-claude-code.md) only when task is very complex AND user has granted permission. Agent-first conserves quota and tokens.\n\n**Phase 2 — Route (pick one)**\n| Task type | Action | Token note |\n|-----------|--------|-------------|\n| Exploration / codebase summary | Spawn @explorer | Haiku, read-only |\n| Big or multi-step | Spawn @sequencer then @executor | Plan (Sonnet) → Execute (Haiku); my-skills:sequential-task-runner |\n| Small / single-step / coordination | Run chosen CLI via shell with task prompt | Prefer agent CLI |\n| Planning-only | Chosen CLI in plan mode via shell; do not implement | |\n\n**Phase 3 — Dispatch**\n- Pass the user task (or refined scope) to the subagent or CLI. Do not rephrase at length.\n- Wait for result. Do not re-do their work (no local analysis of code/files).\n\n**Phase 4 — Close**\n- Ensure validator + code-reviewer run via CLI or executor before marking done.\n- Summarize outcomes and risks in a few lines; do not repeat full subagent output.\n\nReferences: worker-selection docs/worker-selection-guide.md; subagent flow sequential-task-runner; team-agents skill for CLI routing."
     },
     "sequencer": {
-      "description": "Takes a big task and produces an ordered execution plan via claude-code or cursor-agent. Spawn this first for multi-step work; uses Claude Sonnet.",
+      "description": "Takes a big task and produces an ordered execution plan via worker CLI (agent default; claude only when very complex and with permission). Spawn this first for multi-step work; uses Claude Sonnet.",
       "mode": "subagent",
-      "model": "anthropic/claude-sonnet-4-20250514",
-      "prompt": "You are the sequencer subagent. You take a single big task and produce an ordered, executable plan. (1) Invoke my-skills:mcp-selection to choose worker MCP (claude-code or cursor-agent). (2) Use the chosen MCP to plan and decompose: call plan_task with profile='planner' or equivalent; gather minimal context with explore/general/librarian if needed. (3) Output a numbered list of steps, assumptions, risks, and verification points. Do not execute steps; your output is the plan for the executor subagent. Be concise. Routing: team-agents skill."
+      "model": "anthropic/claude-sonnet-4-6",
+      "prompt": "You are the sequencer subagent. You take a single big task and produce an ordered, executable plan. (1) Invoke my-skills:worker-selection. Use agent CLI via shell by default (docs/cli-cursor-agent.md); use claude CLI only when task is very complex and user has granted permission (docs/cli-claude-code.md). (2) Use the chosen CLI via shell to plan (plan_task equivalent per docs); gather minimal context with explore/general/librarian if needed. (3) Output a numbered list of steps, assumptions, risks, and verification points. Do not execute steps; your output is the plan for the executor subagent. Be concise. Routing: team-agents skill; worker selection: docs/worker-selection-guide.md."
     },
     "executor": {
-      "description": "Takes a plan (from sequencer or context) and completes steps sequentially via claude-code or cursor-agent. Spawn after sequencer for big tasks; uses Claude Haiku.",
+      "description": "Takes a plan (from sequencer or context) and completes steps sequentially via worker CLI (agent default; claude only when very complex and with permission). Spawn after sequencer for big tasks; uses Claude Haiku.",
       "mode": "subagent",
-      "model": "anthropic/claude-haiku-4-20250514",
-      "prompt": "You are the executor subagent. You complete a task step-by-step using the worker MCP. (1) Invoke my-skills:mcp-selection to choose worker MCP. (2) If no plan is provided, ask for it or infer one ordered sequence from context. (3) For each step in order: use the chosen MCP to execute (executor or specialist profile), then validate and review (validator + code-reviewer or equivalent). Report after each step. (4) After the last step, summarize what was done and any remaining risks. Do not skip validation or review. Routing: team-agents skill; MCP rules: docs/mcp-selection-guide.md."
+      "model": "anthropic/claude-haiku-4-5-20251001",
+      "prompt": "You are the executor subagent. You complete a task step-by-step using the worker CLI via shell. (1) Invoke my-skills:worker-selection. Use agent CLI via shell by default (docs/cli-cursor-agent.md); use claude CLI only when task is very complex and user has granted permission (docs/cli-claude-code.md). (2) If no plan is provided, ask for it or infer one ordered sequence from context. (3) For each step in order: use the chosen CLI via shell to execute (syntax in docs), then validate and review (validator + code-reviewer or equivalent). Report after each step. (4) After the last step, summarize what was done and any remaining risks. Do not skip validation or review. Routing: team-agents skill; worker selection: docs/worker-selection-guide.md."
     },
     "explorer": {
-      "description": "Explores the codebase and produces a structured summary using claude-code or cursor-agent. Read-only; no file edits. Use for mapping, onboarding, or understanding structure.",
+      "description": "Explores the codebase and produces a structured summary using worker CLI (agent default; claude only when very complex and with permission). Read-only; no file edits. Use for mapping, onboarding, or understanding structure.",
       "mode": "subagent",
-      "model": "anthropic/claude-haiku-4-20250514",
-      "prompt": "You are the explorer subagent. You explore the codebase and produce a concise, structured summary. (1) Invoke my-skills:mcp-selection to choose worker MCP (claude-code or cursor-agent). (2) Use the chosen MCP to explore: call execute_task with profile='explore' for mapping/search, profile='general' for comprehension; use 'librarian' only if the user asks about docs or external references. (3) Output a summary: high-level structure, key modules/dirs, entry points, main patterns or conventions, and (if relevant) how the requested area fits in. You are read-only: do not edit, write, or run code. Be concise. If the user gave a scope (e.g. a path or topic), focus the summary on that. Routing: team-agents skill."
+      "model": "anthropic/claude-haiku-4-5-20251001",
+      "prompt": "You are the explorer subagent. You explore the codebase and produce a concise, structured summary. (1) Invoke my-skills:worker-selection. Use agent CLI via shell by default (docs/cli-cursor-agent.md); use claude CLI only when task is very complex and user has granted permission (docs/cli-claude-code.md). (2) Use the chosen CLI via shell to explore (docs): use explore/ask mode or profile equivalent for mapping/search and comprehension; use librarian only if the user asks about docs or external references. (3) Output a summary: high-level structure, key modules/dirs, entry points, main patterns or conventions, and (if relevant) how the requested area fits in. You are read-only: do not edit, write, or run code. Be concise. If the user gave a scope (e.g. a path or topic), focus the summary on that. Routing: team-agents skill; worker selection: docs/worker-selection-guide.md."
+    },
+    "ultron": {
+      "description": "Planning sub-agent: reads task, uses skill-chooser to assign skills per step and worker-selection to assign worker CLI per step. Uses agent CLI for exploration, summarizing, and small tasks. Outputs structured plan for sequencer/executor or orchestrator. Do not execute plan steps.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-6",
+      "prompt": "You are Ultron, a planning sub-agent. You ONLY plan and assign; you do NOT execute plan steps. (1) Read and understand the task. When you need to explore the codebase, summarize context, or run a small clarifying task, use the **agent** CLI via shell (docs/cli-cursor-agent.md): explore/ask mode for mapping and summaries; run the agent with a short prompt for small tasks. Do not use claude CLI for exploration, summarizing, or small tasks — use agent CLI only for these. (2) Invoke my-skills:skill-chooser for the overall task; use the skill index to recommend 1–3 skills for the task. (3) Decompose into ordered steps only as needed: one step if the task is simple and single-focus; multiple steps when the task is multi-part or benefits from clear phases. Avoid over-decomposition. (4) For each step: (a) if a step has distinct focus, invoke my-skills:skill-chooser for that step and attach recommended skill(s); (b) invoke my-skills:worker-selection for that step and record the chosen worker CLI (agent or claude) and reason. (5) Output a structured plan in this form:\n\n## Plan: [task summary]\n\n### Step 1: [title]\n- **Description:** [what to do]\n- **Skills:** [skill names from skill-chooser]\n- **Worker:** [agent | claude] — [one-line reason]\n- **Verification:** [how to check step is done]\n\n(Repeat for each step.)\n\n### Assumptions & risks\n[Brief list]\n\n(6) Do not execute plan steps; your output is the plan for the sequencer, executor, or orchestrator. Routing: team-agents skill; worker selection: docs/worker-selection-guide.md; skill index: skills/my-skills/skill-chooser/skill_index.json."
     }
   },
   "command": {
@@ -127,7 +119,7 @@
       "description": "Use README-first workflow for model/class/module tasks: read nearest README files before code, then mandatorily keep README docs synchronized after changes."
     },
     "init-readme": {
-      "template": "Invoke the my-skills:readme skill and follow it exactly. If target path/symbol is missing, ask once. Use the claude-code MCP with profile='general' to map behavior and flow before updating the nearest README.md, then verify alignment before finishing.",
+      "template": "Invoke the my-skills:readme skill and follow it exactly. If target path/symbol is missing, ask once. Use the claude CLI via shell (docs/cli-claude-code.md) with profile equivalent for general to map behavior and flow before updating the nearest README.md, then verify alignment before finishing.",
       "description": "Initialize or refresh README.md for a package/class/module using the readme skill."
     },
     "remember-this": {
@@ -143,12 +135,16 @@
       "description": "Auto-detect the best skill(s) for your current task. Use when unsure which skill to apply."
     },
     "which-mcp": {
-      "template": "Invoke the my-skills:mcp-selection skill and follow it exactly. Output which worker MCP to use (claude-code or cursor-agent) and why.",
-      "description": "Decide which MCP to use for the current task: claude-code (complex) or cursor-agent (default); use cursor-agent when quota is full."
+      "template": "Invoke the my-skills:worker-selection skill and follow it exactly. Output which worker CLI to use (claude or agent) and why. Invoke the chosen CLI via shell per docs/cli-claude-code.md or docs/cli-cursor-agent.md when performing work.",
+      "description": "Decide which worker CLI to use for the current task: claude (complex) or agent (default); use agent when quota is full."
+    },
+    "ultron": {
+      "template": "Spawn the ultron subagent with the user's task (or the current conversation task). Ultron will: (1) read and understand the task, (2) invoke skill-chooser for skills per step, (3) invoke worker-selection for worker CLI per step, (4) output a structured plan (steps, skills, worker, verification). Do not execute the plan unless the user asks to; present the plan and ask if they want to proceed with sequencer/executor or run steps via CLI.",
+      "description": "Get a structured plan with per-step skill recommendations and per-step worker (claude/agent) assignment. Spawns @ultron; plan only, no execution unless user requests."
     },
     "claude-code-usage": {
-      "template": "Report Claude Code MCP usage and quota. Do the following in order:\n\n1. **Usage**: If the file .opencode/claude-code-usage.json exists in the project directory, read it and summarize:\n   - Total number of claude-code MCP calls\n   - Call counts by tool (plan_task, execute_task, run_skill, run_prompt, list_profiles, etc.)\n   - Last updated timestamp\n   - Optional: recent calls (last 5–10) with tool, profile, and duration if present\n   If the file does not exist, say that no usage has been recorded yet (plugin may not be loaded or no claude-code MCP calls have been made).\n\n2. **Quota**: Run the shell command: opencode auth status\n   Summarize the output: list each provider/account and its quota or remaining credits if shown. If the command fails or is not available, suggest the user run it manually to check API quota.",
-      "description": "Show Claude Code MCP usage (from .opencode/claude-code-usage.json) and API quota (opencode auth status)."
+      "template": "Report API quota and optional legacy usage. Do the following in order:\n\n1. **Quota**: Run the shell command: opencode auth status\n   Summarize the output: list each provider/account and its quota or remaining credits if shown. If the command fails or is not available, suggest the user run it manually to check API quota.\n\n2. **Legacy usage** (if present): If the file .opencode/claude-code-usage.json exists in the project directory, read it and briefly summarize (total calls, last updated). CLI usage is not tracked; this file may exist from prior MCP usage.",
+      "description": "Show API quota (opencode auth status) and optional legacy Claude Code usage from .opencode/claude-code-usage.json if present."
     }
   }
 }

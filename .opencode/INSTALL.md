@@ -5,10 +5,10 @@ This document is designed for an AI agent to follow step-by-step to install this
 ## What This Installs
 
 - **OpenCode configuration** with multi-model Antigravity provider support (Claude, Gemini)
-- **My Skills collection** — 91+ consolidated workflow and domain skills (TDD, debugging, React, etc.)
-- **Claude Code MCP profiles** — all three primary agents maximize `claude-code` usage for planning, exploration, implementation, validation, review, docs, cleanup, and architecture work
-- **Custom slash commands** (`/brainstorm`, `/write-plan`, `/execute-plan`, `/claude-code-usage`, `/antigravity-quota`)
-- **MCP servers** — memory, sequential-thinking, time, ast-grep, context7, grep-app, web-search, claude-code
+- **My Skills collection** — 92+ consolidated workflow and domain skills (TDD, debugging, planning, React, etc.)
+- **Worker CLI routing** — primary agents use the claude or agent CLI via shell for planning, exploration, implementation, validation, and review (docs/cli-claude-code.md, docs/cli-cursor-agent.md)
+- **Custom slash commands** (`/brainstorm`, `/write-plan`, `/execute-plan`, `/ultron`, `/which-mcp`, `/claude-code-usage`, `/antigravity-quota`)
+- **MCP servers** — memory, sequential-thinking, time, ast-grep, context7, grep-app, web-search
 
 ---
 
@@ -30,7 +30,8 @@ Before starting, verify these are installed. If any are missing, inform the user
 |------|---------|
 | Antigravity Auth | Required for Antigravity model providers (Claude/Gemini via Google proxy) |
 | Playwright | Browser automation (`npx playwright install`) |
-| Claude Code CLI | Required for the `claude-code` local MCP (`claude --version`) |
+| Claude Code CLI | For worker CLI path: planning/execution via `claude` (`claude --version`) |
+| Cursor CLI (agent) | For worker CLI path: planning/execution via `agent` (`agent --version`) |
 
 ---
 
@@ -79,23 +80,16 @@ cd ~/.config/opencode && npm install
 
 This installs the `@opencode-ai/plugin` package required by the superpowers plugin.
 
-### Step 4 (optional): Claude Code MCP bridge for other IDEs
+### Step 4: Verify worker CLI (for planning/execution)
 
-The `claude-code` MCP is configured as **local** in `opencode.json`: OpenCode starts it when you run OpenCode and stops it when you exit. No separate service is required for OpenCode. The `command` array uses an absolute path to `mcp/claude-code-server.mjs`; if your config lives elsewhere, edit the path in `opencode.json` to match.
-
-If you want to use the same `claude-code` MCP from another IDE (e.g. Cursor, VS Code) that connects via HTTP, install the global bridge:
+Agents run the **claude** or **agent** CLI via shell for planning and execution. Ensure at least one is available:
 
 ```bash
-npm install -g --prefix ~/.local mcp-proxy
-mkdir -p ~/Library/LaunchAgents ~/.config/opencode/logs
-ln -sf ~/.config/opencode/mcp/claude-code-mcp.plist ~/Library/LaunchAgents/io.aditya.opencode.claude-code-mcp.plist
-launchctl bootout "gui/$(id -u)" ~/Library/LaunchAgents/io.aditya.opencode.claude-code-mcp.plist 2>/dev/null || true
-launchctl bootstrap "gui/$(id -u)" ~/Library/LaunchAgents/io.aditya.opencode.claude-code-mcp.plist
-launchctl kickstart -k "gui/$(id -u)/io.aditya.opencode.claude-code-mcp"
-curl -fsS http://127.0.0.1:4318/mcp >/dev/null || true
+claude --version   # Claude Code CLI (optional)
+agent --version   # Cursor CLI (optional)
 ```
 
-That exposes the `claude-code` MCP at `http://127.0.0.1:4318/mcp` for other MCP-aware IDEs. For OpenCode-only use, you can skip this step.
+See docs/cli-claude-code.md and docs/cli-cursor-agent.md for syntax.
 
 ### Step 5: Verify File Structure
 
@@ -109,9 +103,11 @@ ls ~/.config/opencode/AGENTS.md
 
 # Verify plugin
 ls -l ~/.config/opencode/plugins/custom-hooks.js
-ls -l ~/.config/opencode/mcp/claude-code-server.mjs
-ls -l ~/.config/opencode/mcp/claude-code-bridge.sh
-ls -l ~/.config/opencode/mcp/claude-code-mcp.plist
+
+# Verify CLI docs (worker CLI via shell)
+ls ~/.config/opencode/docs/cli-claude-code.md
+ls ~/.config/opencode/docs/cli-cursor-agent.md
+ls ~/.config/opencode/docs/worker-selection-guide.md
 
 # Verify skills
 ls ~/.config/opencode/skills/my-skills/
@@ -139,10 +135,9 @@ After restart, verify the installation by asking the user to confirm these work:
 
 1. **Skills loaded**: Check the skill tool to list available skills — should show `my-skills/`, `update-config`, and `team-agents` skills.
 2. **Commands available**: Try `/brainstorm` — should invoke the brainstorming skill.
-3. **Primary agents configured**: Check that `build`, `plan`, and `orchestrator` are visible in the agent hierarchy and that each is described as routing work through `claude-code`.
-4. **Claude profiles available**: Verify `claude-code_list_profiles` is available and returns profiles like `planner`, `explore`, `executor`, `validator`, and `code-reviewer`.
-5. **MCP servers connected**: Verify MCP tools like `ast-grep_find_code`, `context7_resolve-library-id`, `web-search_search_web`, `claude-code_plan_task`, and `claude-code_list_profiles` are available.
-6. **Claude Code MCP**: With local config, `claude-code_list_profiles` should be available after OpenCode starts. If you use the optional HTTP bridge for other IDEs, `curl -i http://127.0.0.1:4318/mcp` should return a response from the bridge.
+3. **Primary agents configured**: Check that `build`, `plan`, `orchestrator`, and subagent `ultron` are visible in the agent hierarchy; primary agents route work through the worker CLI (claude or agent) via shell; ultron is the planning sub-agent (skill-chooser + worker-selection per step).
+4. **Worker CLI**: Verify at least one of `claude --version` or `agent --version` succeeds if you want planning/execution via CLI. See docs/cli-claude-code.md and docs/cli-cursor-agent.md.
+5. **MCP servers connected**: Verify MCP tools like `ast-grep_find_code`, `context7_resolve-library-id`, and `web-search_search_web` are available (no claude-code or cursor-agent MCP).
 
 ---
 
@@ -198,7 +193,7 @@ Use the update-config skill to update config.
 ### Agents Not Working
 
 1. Verify `opencode.json` has the `agent` section with `build`, `plan`, and `orchestrator` defined
-2. Verify the `claude-code` MCP is connected and `claude-code_list_profiles` is available
+2. Verify worker CLI (optional): run `claude --version` or `agent --version` if using CLI for planning/execution
 3. Verify the prompts for `build`, `plan`, and `orchestrator` explicitly route planning, execution, verification, and review through Claude Code profiles
 4. Antigravity models require auth — ensure `antigravity-accounts.json` is configured
 
@@ -211,7 +206,7 @@ Use the update-config skill to update config.
    - `ast-grep`: Requires ast-grep CLI (`brew install ast-grep`)
    - `context7`: No external dependencies
    - `web-search`: No external dependencies (uses DuckDuckGo/SearXNG)
-   - `claude-code`: Requires the `claude` CLI on `PATH` and an authenticated Claude Code setup. OpenCode runs it as a local MCP (no bridge required). If you use the optional HTTP bridge for other IDEs, ensure it is running at `http://127.0.0.1:4318/mcp`.
+   - Worker CLI: For planning/execution, agents run `claude` or `agent` via shell; ensure at least one is on PATH and authenticated. See docs/cli-claude-code.md and docs/cli-cursor-agent.md.
 
 ### Tool Mapping (for Skills Written for Claude Code)
 
@@ -238,9 +233,9 @@ When skills reference Claude Code tools, OpenCode uses these equivalents:
 ├── package.json                # Dependencies (@opencode-ai/plugin)
 ├── node_modules/               # Installed packages
 ├── mcp/
-│   ├── claude-code-server.mjs  # Custom Claude Code CLI MCP server
-│   ├── claude-code-bridge.sh   # Localhost HTTP bridge launcher
-│   └── claude-code-mcp.plist   # launchd service definition for the bridge
+│   ├── docs/cli-claude-code.md  # Claude Code CLI reference for shell subagents
+│   ├── docs/cli-cursor-agent.md # Cursor Agent CLI reference for shell subagents
+│   └── docs/worker-selection-guide.md  # When to use claude vs agent
 ├── .agents/
 │   ├── plans/                  # Implementation plans (generated by prometheus-lite)
 │   └── drafts/                 # Draft plans and interview notes

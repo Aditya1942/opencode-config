@@ -33,15 +33,16 @@ OpenCode now uses a single primary agent layer and pushes as much work as possib
 | Agent | Model | Mode | Role |
 |-------|-------|------|------|
 | `build` (primary) | User-selected | build/plan | Default agent; maximizes Claude Code usage for planning, execution, validation, and review |
-| `plan` | User-selected | build/plan | Planning-focused entry point using Claude Code for planning plus plan validation/review |
+| `plan` | User-selected | build/plan | Planning only; must spawn @ultron for plan (per-step skills + worker), then optional validation via CLI |
 | `orchestrator` | User-selected | build/plan | Coordination-focused entry point using Claude Code end-to-end, with mandatory review/verification on change-producing flows |
+| `ultron` | Claude Sonnet | subagent | Planning sub-agent: task → skill-chooser (per step) + worker-selection (per step); outputs structured plan; spawn when plan needs per-step skills and worker assignment |
 
 Instead of OpenCode subagents, the repo uses Claude Code profiles such as `planner`, `explore`, `general`, `librarian`, `executor`, `validator`, `code-reviewer`, `architect`, `build-error-resolver`, `refactor-cleaner`, `doc-updater`, and `tdd-guide`. Token-heavy work like exploration, broad code comprehension, and research should be routed through Claude Code rather than handled locally. For any task that produces changes, Claude-backed validation and review are expected before completion. See the `team-agents` skill for routing guidance.
 
-### 91+ Skills
+### 92+ Skills
 
 **My Skills** (`my-skills/`):
-A consolidated collection of 91 skills for AI agents covering frontend, backend, code review, documentation updates, testing, and more (e.g. `brainstorming`, `plan-writing`, `clean-code`, `frontend-design`, `react-best-practices`, etc.).
+A consolidated collection of 92 skills for AI agents covering frontend, backend, code review, documentation updates, planning, and more (e.g. `brainstorming`, `plan-writing`, `ultron-planning`, `clean-code`, `frontend-design`, `react-best-practices`, etc.).
 
 **Orchestration & Config:**
 team-agents, update-config
@@ -53,6 +54,7 @@ team-agents, update-config
 | `/brainstorm` | Invoke brainstorming skill before creative work |
 | `/write-plan` | Create detailed implementation plan |
 | `/execute-plan` | Execute plan in batches with review checkpoints |
+| `/ultron` | Get plan with per-step skills and worker assignment (spawns @ultron) |
 | `/claude-code-usage` | Show Claude Code MCP usage and API quota |
 | `/antigravity-quota` | Check Antigravity API quota for all accounts |
 
@@ -65,8 +67,9 @@ team-agents, update-config
 | Agent | Model | Mode | Role |
 |-------|-------|------|------|
 | **build** | User-selected | primary | Default agent; maximizes `claude-code` MCP usage for planning, execution, validation, and review |
-| **plan** | User-selected | primary | Planning-focused entry point using Claude Code for planning plus plan validation/review |
+| **plan** | User-selected | primary | Planning only; must spawn @ultron for plan (per-step skills + worker), then optional validation via CLI |
 | **orchestrator** | User-selected | primary | Coordination-focused entry point using Claude Code end-to-end, with mandatory review/verification on change-producing flows |
+| **ultron** | Claude Sonnet | subagent | Planning sub-agent: skill-chooser + worker-selection per step; outputs structured plan (no execution) |
 
 Routing details: load the **team-agents** skill.
 
@@ -77,6 +80,7 @@ Routing details: load the **team-agents** skill.
 | `/brainstorm` | Invoke brainstorming skill before creative work |
 | `/write-plan` | Create implementation plan with tasks |
 | `/execute-plan` | Execute plan in batches with checkpoints |
+| `/ultron` | Plan with per-step skills and worker assignment (spawns @ultron) |
 | `/claude-code-usage` | Show Claude Code MCP usage (from .opencode/claude-code-usage.json) and API quota |
 | `/antigravity-quota` | Check Antigravity API quota (plugin) |
 
@@ -84,7 +88,7 @@ Routing details: load the **team-agents** skill.
 
 | Collection | Skills |
 |------------|--------|
-| **my-skills** | Consolidated directory with 91 varied skills (e.g. `brainstorming`, `plan-writing`, `react-best-practices`) |
+| **my-skills** | Consolidated directory with 92 varied skills (e.g. `brainstorming`, `plan-writing`, `ultron-planning`, `react-best-practices`) |
 | **Orchestration** | team-agents |
 | **Config** | update-config |
 
@@ -157,15 +161,12 @@ Or inside OpenCode, run `/update-config`.
 ├── opencode.json               # Main config (models, agents, commands, providers, MCP)
 ├── AGENTS.md                   # Agent instructions and coding standards
 ├── package.json                # Dependencies (@opencode-ai/plugin)
-├── mcp/
-│   ├── claude-code-server.mjs  # Custom Claude Code CLI MCP server
-│   ├── claude-code-bridge.sh   # Localhost HTTP bridge launcher
-│   └── claude-code-mcp.plist   # launchd service definition for the bridge
+├── mcp/                        # (Optional) Other MCP servers; worker CLIs used via shell (see docs/)
 ├── plugins/
 │   ├── custom-hooks.js         # Combined hooks plugin
 │   └── hooks/                  # Individual hook implementations
 ├── skills/
-│   ├── my-skills/              # Consolidated skills directory (91+ skills)
+│   ├── my-skills/              # Consolidated skills directory (92+ skills)
 │   ├── team-agents/            # Multi-agent routing skill
 │   └── update-config/          # Update config skill
 ├── .agents/

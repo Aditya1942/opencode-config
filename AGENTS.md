@@ -55,11 +55,12 @@ the `claude` CLI installed and local dev marketplace enabled in settings.
 
 | Command | Purpose |
 |---------|---------|
-| `/which-mcp` | Choose worker MCP for current task (claude-code vs cursor-agent; quota-aware) |
+| `/which-mcp` | Choose worker CLI for current task (claude vs agent; quota-aware); invoke via shell per docs |
 | `/brainstorm` | Invoke brainstorming skill before creative work |
 | `/write-plan` | Create implementation plan with tasks |
 | `/execute-plan` | Execute plan in batches with checkpoints |
-| `/claude-code-usage` | Show Claude Code MCP usage and API quota |
+| `/ultron` | Get structured plan with per-step skills (skill-chooser) and per-step worker (worker-selection); spawns @ultron; plan only unless user requests execution |
+| `/claude-code-usage` | Show API quota (opencode auth status) and optional legacy usage |
 | `/antigravity-quota` | Check Antigravity API quota |
 
 ## Code Style
@@ -93,16 +94,19 @@ the `claude` CLI installed and local dev marketplace enabled in settings.
 
 | Agent | Model | Mode | Role |
 |-------|--------|------|------|
-| `build` | (user-selected) | primary | Uses mcp-selection; for big/multi-step tasks spawns @sequencer then @executor; otherwise does work via chosen MCP. |
-| `plan` | (user-selected) | primary | Planning only. Uses mcp-selection; chosen MCP for plan + validation/review. |
-| `orchestrator` | (user-selected) | primary | **Never performs tasks directly.** Always uses subagent-driven-development + MCP (claude-code or cursor-agent). All work via @sequencer, @executor, @explorer or MCP tools only. |
-| `sequencer` | Claude Sonnet | subagent | Takes big task → mcp-selection → chosen MCP to plan and output ordered steps. Spawn first. |
-| `executor` | Claude Haiku | subagent | Takes plan → mcp-selection → executes steps sequentially via chosen MCP (validate + review per step). Spawn after sequencer. |
-| `explorer` | Claude Haiku | subagent | Explores codebase via chosen MCP (explore/general/librarian); outputs structured summary. Read-only. Use @explorer for mapping or onboarding. |
+| `build` | (user-selected) | primary | Uses worker-selection; for big/multi-step tasks spawns @sequencer then @executor; otherwise does work via chosen worker CLI (shell). |
+| `plan` | (user-selected) | primary | Planning only. **Must** spawn @ultron for planning (per-step skills + worker); then optional validation/review via CLI. Does not implement. |
+| `orchestrator` | (user-selected) | primary | **PURE dispatcher:** never performs tasks directly. Routes by task type (explore → @explorer; big/multi-step → @sequencer then @executor; small → worker CLI via shell). Token-optimized: agent CLI default, subagents do planning/execution; orchestrator only dispatches and summarizes. |
+| `sequencer` | Claude Sonnet | subagent | Takes big task → worker-selection → chosen CLI via shell to plan and output ordered steps. Spawn first. |
+| `executor` | Claude Haiku | subagent | Takes plan → worker-selection → executes steps sequentially via chosen CLI via shell (validate + review per step). Spawn after sequencer. |
+| `explorer` | Claude Haiku | subagent | Explores codebase via chosen CLI via shell (explore/ask mode or profile equivalent); outputs structured summary. Read-only. Use @explorer for mapping or onboarding. |
+| `ultron` | Claude Sonnet | subagent | Planning sub-agent: reads task; uses **agent** CLI for exploration, summarizing, and small tasks; skill-chooser (per step) → worker-selection (per step). Outputs structured plan (steps, skills, worker, verification). Do not execute plan steps. |
 
-**MCP selection:** Invoke **mcp-selection** at task start. **claude-code** (Opus/Sonnet) for complex tasks; **cursor-agent** otherwise; **cursor-agent** for all when quota is full. See `docs/mcp-selection-guide.md`. **Subagent flow:** For big/multi-step tasks, spawn @sequencer then @executor; see **sequential-task-runner** skill.
+**Worker CLI selection:** Invoke **worker-selection** at task start. Use the **agent** CLI for all kinds of tasks via shell; utilize it as much as possible without permission. Use the **claude** CLI (Opus/Sonnet) only when the task is **very complex** and the **user has granted permission**. **agent** for all when quota is full. See `docs/worker-selection-guide.md`. Invoke the chosen CLI via shell per docs/cli-cursor-agent.md or docs/cli-claude-code.md. **Subagent flow:** For big/multi-step tasks, spawn @sequencer then @executor; see **sequential-task-runner** skill.
 
-**Orchestrator rule (mandatory):** The orchestrator **always** uses **subagent-driven-development** and the worker **MCP** (claude-code or cursor-agent). It **never** performs the task directly: no local read/write/edit/bash for task work. All work is done by subagents (@sequencer, @executor, @explorer) or by calling MCP tools (plan_task, execute_task, etc.). Invoke my-skills:subagent-driven-development at session start.
+**Orchestrator rule (mandatory):** The orchestrator is a **PURE dispatcher** with **token-aware orchestration**. When a plan is provided, follow it and do not load skills without reading the plan first; load skills only when the plan or current step requires them. It always invokes my-skills:subagent-driven-development and my-skills:worker-selection at session start (when no plan is being followed). It never performs the task directly (no Read/Write/Edit/Bash for task work). Work flows through: @explorer (exploration), @sequencer then @executor (big/multi-step), or the chosen worker CLI via shell (small/single-step). Prefer the **agent** CLI for all tasks; use **claude** CLI only when the task is very complex and the user has granted permission. Before completion, validator and code-reviewer must run (via CLI or executor). The orchestrator only routes, dispatches, and gives a short summary — no token-heavy local analysis.
+
+**Orchestrator token optimization:** Two-level hierarchy (orchestrator coordinates; subagents do work), plan→validate→execute via sequencer/executor, and model tiering (Sonnet for planning, Haiku for execution/explore) keep token use predictable. Agent CLI default reduces quota burn; orchestrator prompt is phased (bootstrap → route → dispatch → close) so it does minimal reasoning per turn.
 
 ## Skills
 
@@ -113,9 +117,11 @@ Use the `skill` tool — never read SKILL.md files directly.
 
 | Skill | When to Use |
 |-------|-------------|
-| `mcp-selection` | At task start to choose claude-code vs cursor-agent; when quota may be full |
-| `sequential-task-runner` | Big or multi-step task: spawn @sequencer then @executor to complete sequentially via MCPs |
-| `subagent-driven-development` | **Orchestrator always.** All work via subagents + MCP; never perform task directly. |
+| `worker-selection` | At task start to choose claude vs agent CLI; when quota may be full; then invoke CLI via shell per docs |
+| `skill-chooser` | When unsure which skill(s) apply; when starting a new task; spawn @ultron when you need a plan with skills and worker assigned per step. |
+| `ultron-planning` | When you need a plan with per-step skills and per-step worker assignment; spawn @ultron or use /ultron; plan only. |
+| `sequential-task-runner` | Big or multi-step task: spawn @sequencer then @executor to complete sequentially via worker CLI (shell) |
+| `subagent-driven-development` | **Orchestrator always.** All work via subagents or worker CLI via shell; never perform task directly. |
 | `brainstorming` | Before ANY creative/feature work (mandatory) |
 | `test-driven-development` | Before writing implementation code |
 | `systematic-debugging` | When encountering bugs, before proposing fixes |
