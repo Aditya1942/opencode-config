@@ -11,7 +11,6 @@ Pick the section matching your change type and follow every checkbox.
 - [ ] `README.md` — Update **MCP Servers** table + count in heading `(N)`
 - [ ] `.opencode/INSTALL.md` — Update MCP list in **What This Installs** section
 - [ ] `.opencode/INSTALL.md` — Update **Troubleshooting > MCP Servers Not Connecting** requirements list
-- [ ] `skills/team-agents/SKILL.md` — Update MCP list in Step 4 execution line ("Use MCPs freely: ...")
 - [ ] `skills/update-config/SKILL.md` — Update **Current Configuration > MCPs** count and list
 - [ ] `AGENTS.md` — Update if MCP is referenced in agent instructions or anti-patterns
 
@@ -34,7 +33,7 @@ Pick the section matching your change type and follow every checkbox.
 
 ## Adding / Removing / Updating a Command
 
-- [ ] `opencode.json` — Add/remove/edit entry in `"commands"` section
+- [ ] `opencode.json` — Add/remove/edit entry in `"command"` section
 - [ ] `README.md` — Update **Custom Commands** table (summary section)
 - [ ] `README.md` — Update **Commands (slash)** table (full list section)
 - [ ] `AGENTS.md` — Update **Slash Commands** table
@@ -44,10 +43,9 @@ Pick the section matching your change type and follow every checkbox.
 
 ## Adding / Removing / Updating an Agent
 
-- [ ] `opencode.json` — Add/remove/edit entry in `"agents"` section
+- [ ] `opencode.json` — Add/remove/edit entry in `"agent"` section
 - [ ] `README.md` — Update **Agent Architecture** summary table
 - [ ] `README.md` — Update **Agents** full table
-- [ ] `skills/team-agents/SKILL.md` — Update **Agents & Roles** table, routing tables, and Iron Law table
 - [ ] `AGENTS.md` — Update **Agent Hierarchy** table
 - [ ] `.opencode/INSTALL.md` — Update **Verification** step if agent should be visible
 - [ ] `.opencode/INSTALL.md` — Update **Troubleshooting > Agents Not Working** if relevant
@@ -69,7 +67,6 @@ Pick the section matching your change type and follow every checkbox.
 - [ ] `opencode.json` — Add/remove/edit entry in `"models"` or `"providers"` section
 - [ ] `AGENTS.md` — Update **Agent Hierarchy** table if agent models changed
 - [ ] `README.md` — Update agent tables if model names shown
-- [ ] `skills/team-agents/SKILL.md` — Update **Agents & Roles** table model column
 - [ ] `.opencode/INSTALL.md` — Update **Post-Installation: Model Provider Setup** if new provider
 
 ---
@@ -78,9 +75,8 @@ Pick the section matching your change type and follow every checkbox.
 
 | File | What it tracks |
 |------|---------------|
-| `opencode.json` | **Source of truth** — models, agents, commands, MCP, plugins, providers |
+| `opencode.json` | **Source of truth** — models, agents, commands, MCP, plugins, providers (keys: `agent`, `command`) |
 | `README.md` | Public-facing docs — all tables, counts, directory tree |
 | `.opencode/INSTALL.md` | Installation guide — counts, MCP list, directory tree, troubleshooting |
 | `AGENTS.md` | AI instructions — agent table, skills table, commands table |
-| `skills/team-agents/SKILL.md` | Agent routing — agent table, MCP list, workflow steps |
 | `skills/update-config/SKILL.md` | Update reference — current MCP/skill counts and lists |

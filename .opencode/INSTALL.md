@@ -5,10 +5,10 @@ This document is designed for an AI agent to follow step-by-step to install this
 ## What This Installs
 
 - **OpenCode configuration** with multi-model Antigravity provider support (Claude, Gemini)
-- **My Skills collection** — 92+ consolidated workflow and domain skills (TDD, debugging, planning, React, etc.)
+- **My Skills collection** — 95+ consolidated workflow and domain skills (TDD, debugging, planning, React, etc.)
 - **Worker CLI routing** — primary agents use the claude or agent CLI via shell for planning, exploration, implementation, validation, and review (docs/cli-claude-code.md, docs/cli-cursor-agent.md)
-- **Custom slash commands** (`/brainstorm`, `/write-plan`, `/execute-plan`, `/ultron`, `/which-mcp`, `/claude-code-usage`, `/antigravity-quota`)
-- **MCP servers** — memory, sequential-thinking, time, ast-grep, context7, grep-app, web-search
+- **Custom slash commands** — `/which-skill`, `/brainstorm`, `/write-plan`, `/execute-plan`, `/readme-first`, `/init-readme`, `/remember-this`, `/recall`, `/ultron`, `/antigravity-quota` (plugin)
+- **MCP servers (7)** — memory, sequential-thinking, time, ast-grep, context7, grep-app, web-search
 
 ---
 
@@ -101,7 +101,8 @@ ls ~/.config/opencode/opencode.json
 ls ~/.config/opencode/package.json
 ls ~/.config/opencode/AGENTS.md
 
-# Verify plugin
+# Verify plugins
+ls -l ~/.config/opencode/plugins/my-skills.js
 ls -l ~/.config/opencode/plugins/custom-hooks.js
 
 # Verify CLI docs (worker CLI via shell)
@@ -113,7 +114,6 @@ ls ~/.config/opencode/docs/worker-selection-guide.md
 ls ~/.config/opencode/skills/my-skills/
 
 # Verify custom skills
-ls ~/.config/opencode/skills/team-agents/SKILL.md
 ls ~/.config/opencode/skills/update-config/SKILL.md
 ```
 
@@ -133,11 +133,11 @@ Please restart OpenCode to load the new configuration.
 
 After restart, verify the installation by asking the user to confirm these work:
 
-1. **Skills loaded**: Check the skill tool to list available skills — should show `my-skills/`, `update-config`, and `team-agents` skills.
+1. **Skills loaded**: Check the skill tool to list available skills — should show `my-skills/` and `update-config` skills.
 2. **Commands available**: Try `/brainstorm` — should invoke the brainstorming skill.
-3. **Primary agents configured**: Check that `build`, `plan`, `orchestrator`, and subagent `ultron` are visible in the agent hierarchy; primary agents route work through the worker CLI (claude or agent) via shell; ultron is the planning sub-agent (skill-chooser + worker-selection per step).
+3. **Agents configured**: Check that `build`, `plan`, `orchestrator`, `sequencer`, `executor`, `explorer`, `ultron`, `architect`, and `code-reviewer` are visible in the agent hierarchy; primary agents route work through the worker CLI (claude or agent) via shell; ultron is the planning sub-agent (planner merged: skill-chooser + worker-selection per step); architect and code-reviewer are specialist subagents.
 4. **Worker CLI**: Verify at least one of `claude --version` or `agent --version` succeeds if you want planning/execution via CLI. See docs/cli-claude-code.md and docs/cli-cursor-agent.md.
-5. **MCP servers connected**: Verify MCP tools like `ast-grep_find_code`, `context7_resolve-library-id`, and `web-search_search_web` are available (no claude-code or cursor-agent MCP).
+5. **MCP servers (7) connected**: Verify MCP tools like `ast-grep_find_code`, `context7_resolve-library-id`, and `web-search_search_web` are available. Planning/execution use worker CLIs via shell, not an MCP.
 
 ---
 
@@ -192,9 +192,9 @@ Use the update-config skill to update config.
 
 ### Agents Not Working
 
-1. Verify `opencode.json` has the `agent` section with `build`, `plan`, and `orchestrator` defined
+1. Verify `opencode.json` has the `agent` section with `build`, `plan`, `orchestrator`, `sequencer`, `executor`, `explorer`, `ultron`, `architect`, and `code-reviewer` defined
 2. Verify worker CLI (optional): run `claude --version` or `agent --version` if using CLI for planning/execution
-3. Verify the prompts for `build`, `plan`, and `orchestrator` explicitly route planning, execution, verification, and review through Claude Code profiles
+3. Verify the prompts route planning, execution, verification, and review through the worker CLI (claude or agent) via shell per docs
 4. Antigravity models require auth — ensure `antigravity-accounts.json` is configured
 
 ### MCP Servers Not Connecting
@@ -232,24 +232,24 @@ When skills reference Claude Code tools, OpenCode uses these equivalents:
 ├── README.md                   # Repository overview
 ├── package.json                # Dependencies (@opencode-ai/plugin)
 ├── node_modules/               # Installed packages
-├── mcp/
-│   ├── docs/cli-claude-code.md  # Claude Code CLI reference for shell subagents
-│   ├── docs/cli-cursor-agent.md # Cursor Agent CLI reference for shell subagents
-│   └── docs/worker-selection-guide.md  # When to use claude vs agent
-├── .agents/
-│   ├── plans/                  # Implementation plans (generated by prometheus-lite)
-│   └── drafts/                 # Draft plans and interview notes
-├── docs/
-│   ├── guides/                 # User guides (model management, etc.)
-│   └── prometheus-metis-momus-paste.md  # Paste-able planning agents
 ├── plugins/
-│   └── custom-hooks.js         # Combined hooks plugin
-└── skills/
-    ├── my-skills/              # Consolidated skills directory (91+ skills)
-    ├── team-agents/            # Multi-agent coding architecture skill
-    │   └── SKILL.md
-    └── update-config/          # Update config skill
-        └── SKILL.md
+│   ├── my-skills.js            # Bootstrap plugin (skill framework)
+│   ├── custom-hooks.js         # Combined hooks plugin
+│   └── hooks/                  # Individual hook implementations
+├── skills/
+│   ├── my-skills/              # Consolidated skills directory (95+ skills)
+│   └── update-config/          # Update config skill
+│       └── SKILL.md
+├── .agents/
+│   ├── plans/                  # Implementation plans
+│   └── drafts/                 # Draft plans and interview notes
+└── docs/                       # Guides and CLI references
+    ├── cli-claude-code.md      # Claude Code CLI reference (worker CLI via shell)
+    ├── cli-cursor-agent.md     # Cursor Agent CLI reference (worker CLI via shell)
+    ├── worker-selection-guide.md  # When to use claude vs agent
+    ├── ultron-design.md        # Ultron planning sub-agent design
+    ├── config-change-checklist.md
+    └── guides/                 # User guides (e.g. model management)
 ```
 
 ---

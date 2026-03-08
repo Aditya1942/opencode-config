@@ -1,7 +1,7 @@
 # Ultron — Planning Sub-Agent Design
 
 **Last updated:** 2026-03-08  
-**Scope:** Planning sub-agent that assigns skills and worker CLI per step; plan-only, no execution.
+**Scope:** Planning sub-agent that assigns skills and worker CLI per step; plan-only, no execution. Planner discipline (requirements, architecture review, phases, testing, risks) is merged into Ultron’s prompt.
 
 ---
 
@@ -67,8 +67,7 @@ Ultron returns a structured plan in this form:
 - **agent CLI (mandatory for explore/summarize/small tasks):** Ultron uses the **agent** CLI via shell (docs/cli-cursor-agent.md) for exploration, summarizing, and small clarifying tasks — e.g. ask/explore mode for mapping and summaries. Does not use claude CLI for these.
 - **skill-chooser:** Reads `skills/my-skills/skill-chooser/skill_index.json`; recommends 1–3 skills per (sub)task.
 - **worker-selection:** Chooses agent or claude per plan step (for execution); docs/worker-selection-guide.md.
-- **team-agents:** When to spawn Ultron vs sequencer/executor; CLI routing table.
-- **Config:** Agent and `/ultron` command in opencode.json; AGENTS.md hierarchy; team-agents SKILL.
+- **Config:** Agent and `/ultron` command in opencode.json; AGENTS.md hierarchy; routing: docs/worker-selection-guide.md, docs/ultron-design.md.
 
 ---
 
@@ -104,4 +103,4 @@ Add a small REST API in this repo: one GET endpoint that returns project metadat
 ---
 
 **Confidence:** 0.95  
-**Related:** AGENTS.md (Agent Hierarchy), skills/team-agents/SKILL.md (Planning Sub-Agent), my-skills:ultron-planning (when to use).
+**Related:** AGENTS.md (Agent Hierarchy), my-skills:ultron-planning (when to use).

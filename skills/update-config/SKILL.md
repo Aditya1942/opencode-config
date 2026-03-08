@@ -48,7 +48,7 @@ After updating, verify these components are present:
 
 - **MCPs (6):** memory, sequential-thinking, time, ast-grep, context7, grep-app, web-search (planning/execution via worker CLI: claude or agent, see docs/cli-claude-code.md, docs/cli-cursor-agent.md)
 - **Claudepowers skills (5):** code-review, explanatory-output, frontend-design, readme-driven-code-understanding, security-guidance
-- **Other skills:** team-agents, update-config; my-skills includes ultron-planning (plan with per-step skills and worker)
+- **Other skills:** update-config; my-skills includes ultron-planning (plan with per-step skills and worker)
 - **Superpowers skills (15):** symlinked from superpowers repo
 
 ## Output

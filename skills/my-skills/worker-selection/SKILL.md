@@ -16,7 +16,7 @@ description: "Decide which worker CLI to use — agent for all tasks (default, n
 
 ## Checklist
 
-1. **Quota gate**: If Claude Code quota is full or exhausted (run `opencode auth status` or check `/claude-code-usage`), **use agent for all tasks**. Stop here.
+1. **Quota gate**: If Claude Code quota is full or exhausted (run `opencode auth status`), **use agent for all tasks**. Stop here.
 2. **Permission for claude**: If the user has not granted permission to use claude, **use agent**. Utilize agent as much as possible without permission.
 3. **Classify the task**: Only if permission for claude exists, check if the task is very complex (see below).
 4. **Output your decision** in this form:
@@ -44,7 +44,7 @@ description: "Decide which worker CLI to use — agent for all tasks (default, n
 
 ## After Deciding
 
-- **claude**: Run the `claude` CLI via shell. Use docs/cli-claude-code.md for syntax (plan_task = `claude -p "..." --permission-mode plan`, execute_task = `--permission-mode acceptEdits`, profile = `--append-system-prompt` with profile text; see doc for details). See team-agents skill for task-type routing.
+- **claude**: Run the `claude` CLI via shell. Use docs/cli-claude-code.md for syntax (plan_task = `claude -p "..." --permission-mode plan`, execute_task = `--permission-mode acceptEdits`, profile = `--append-system-prompt` with profile text; see doc for details). See docs/worker-selection-guide.md and docs/cli-claude-code.md for task-type routing.
 - **agent**: Run the `agent` CLI via shell. Use docs/cli-cursor-agent.md for syntax (plan_task = `agent -p "..." --trust --approve-mcps --mode plan`, execute_task = `--mode agent --force`).
 
 ## Reference

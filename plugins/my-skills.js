@@ -21,14 +21,14 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const SKILLS_ROOT = join(__dirname, '..', 'skills')
 
 // Collections to search, in priority order
-const COLLECTIONS = ['my-skills', 'team-agents', 'update-config']
+const COLLECTIONS = ['my-skills', 'update-config']
 
 /**
  * Resolve a skill name to its SKILL.md path.
  * Accepts these formats:
  *   - "brainstorming"           → searches all collections (subdir pattern)
  *   - "my-skills:brainstorming" → searches my-skills/<name>/SKILL.md
- *   - "team-agents"             → searches team-agents/SKILL.md (flat pattern)
+ *   - "update-config"           → searches update-config/SKILL.md (flat pattern)
  *
  * @param {string} name
  * @returns {{ path: string, collection: string, skillName: string } | null}
@@ -52,7 +52,7 @@ const resolveSkill = (name) => {
       return { path: subdirPath, collection: col, skillName }
     }
 
-    // Pattern 2: skills/<collection>/SKILL.md (flat style — team-agents, update-config)
+    // Pattern 2: skills/<collection>/SKILL.md (flat style — e.g. update-config)
     if (col === skillName || skillName === col) {
       const flatPath = join(SKILLS_ROOT, col, 'SKILL.md')
       if (existsSync(flatPath)) {
@@ -82,7 +82,7 @@ const listSkills = () => {
     if (!existsSync(colPath)) continue
 
     try {
-      // Flat pattern: collection itself is a skill (e.g. team-agents/SKILL.md)
+      // Flat pattern: collection itself is a skill (e.g. update-config/SKILL.md)
       const flatSkillMd = join(colPath, 'SKILL.md')
       if (existsSync(flatSkillMd)) {
         skills.push({ collection: col, name: col })

@@ -41,4 +41,4 @@ Plus assumptions and risks.
 
 - **Design doc:** docs/ultron-design.md
 - **Agent config:** opencode.json → agent "ultron"
-- **Routing:** team-agents skill → Planning Sub-Agent (Ultron) table
+- **Routing:** docs/ultron-design.md, AGENTS.md → Planning Sub-Agent (Ultron)

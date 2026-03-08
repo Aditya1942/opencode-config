@@ -37,4 +37,4 @@ The orchestrator invokes this skill at **every** session start. No exceptions.
 
 - **worker-selection** — choose worker CLI before any dispatch.
 - **sequential-task-runner** — when to spawn @sequencer then @executor.
-- **team-agents** — CLI routing (explore, general, executor, validator, code-reviewer, etc.); use docs for exact invocations.
+- **docs** — CLI routing (explore, general, executor, validator, code-reviewer, etc.): docs/cli-claude-code.md, docs/cli-cursor-agent.md, docs/worker-selection-guide.md.
