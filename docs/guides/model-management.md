@@ -1,13 +1,13 @@
 # Model & Agent Management Guide
 
-How to replace, add, or reconfigure models and agents in the OpenCode config. **Current config:** 7 agents (build, plan, orchestrator, sequencer, executor, explorer, ultron); task work is routed through the **claude** or **agent** worker CLI via shell. See [../worker-selection-guide.md](../worker-selection-guide.md) and root [AGENTS.md](../../AGENTS.md).
+How to replace, add, or reconfigure models and agents in the OpenCode config. **Current config:** 7 agents (build, plan, orchestrator, sequencer, executor, explore, ultron); task work is routed through the **claude** or **agent** worker CLI via shell. See [../worker-selection-guide.md](../worker-selection-guide.md) and root [AGENTS.md](../../AGENTS.md).
 
 ---
 
 ## 1. How It Works
 
 1. **Agent definitions** in `opencode.json` — under the `agent` key. Each entry can have `model`, `mode`, `description`, `prompt`.
-2. **Subagents** (sequencer, executor, explorer, ultron) are invoked via the Task tool / `@mention`; they use the chosen worker CLI (claude or agent) via shell for actual work.
+2. **Subagents** (sequencer, executor, explore, ultron) are invoked via the Task tool / `@mention`; they use the chosen worker CLI (claude or agent) via shell for actual work.
 3. **Model inheritance** — if an agent has no `model` field, it may inherit from the invoking context; primary agents typically use user-selected model.
 
 **Key rule:** Agents defined in `opencode.json` under `agent` are available as subagents. Adding an agent named `foo` with `"mode": "subagent"` makes it available as `@foo` / Task tool.
@@ -20,10 +20,10 @@ How to replace, add, or reconfigure models and agents in the OpenCode config. **
 |-------|-------|------|---------|
 | `build` | user-selected | primary | Default agent; worker-selection then CLI or @sequencer then @executor |
 | `plan` | user-selected | primary | Planning only; must spawn @ultron; optional validation via CLI |
-| `orchestrator` | user-selected | primary | PURE dispatcher; routes to @explorer, @sequencer then @executor, or worker CLI |
+| `orchestrator` | user-selected | primary | PURE dispatcher; routes to @explore, @sequencer then @executor, or worker CLI |
 | `sequencer` | Claude Sonnet | subagent | Big task → chosen CLI via shell → ordered plan |
 | `executor` | Claude Haiku | subagent | Plan → chosen CLI via shell → execute steps (validate + review per step) |
-| `explorer` | Claude Haiku | subagent | Read-only codebase summary via chosen CLI (explore/ask) |
+| `explore` | Claude Haiku | subagent | Read-only codebase summary via chosen CLI (explore/ask) |
 | `ultron` | Claude Sonnet | subagent | Planning: skill-chooser + worker-selection per step; structured plan only |
 
 Routing and worker choice: [worker-selection-guide.md](../worker-selection-guide.md).
@@ -32,7 +32,7 @@ Routing and worker choice: [worker-selection-guide.md](../worker-selection-guide
 
 ## 3. How to Replace a Model
 
-1. **Open `opencode.json`** and find the agent under `agent` (e.g. `sequencer`, `executor`, `explorer`, `ultron`).
+1. **Open `opencode.json`** and find the agent under `agent` (e.g. `sequencer`, `executor`, `explore`, `ultron`).
 2. **Change the `model` field** to the new model ID (e.g. `anthropic/claude-sonnet-4-6`).
 3. **Update `description`** if the new model changes when to use the agent.
 4. **Ensure the provider is configured** (see Section 6).

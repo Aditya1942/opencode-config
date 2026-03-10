@@ -135,7 +135,7 @@ After restart, verify the installation by asking the user to confirm these work:
 
 1. **Skills loaded**: Check the skill tool to list available skills — should show `my-skills/` and `update-config` skills.
 2. **Commands available**: Try `/brainstorm` — should invoke the brainstorming skill.
-3. **Agents configured**: Check that `build`, `plan`, `orchestrator`, `sequencer`, `executor`, `explorer`, `ultron`, `architect`, and `code-reviewer` are visible in the agent hierarchy; primary agents route work through the worker CLI (claude or agent) via shell; ultron is the planning sub-agent (planner merged: skill-chooser + worker-selection per step); architect and code-reviewer are specialist subagents.
+3. **Agents configured**: Check that `build`, `plan`, `orchestrator`, `sequencer`, `executor`, `explore`, `ultron`, `architect`, and `code-reviewer` are visible in the agent hierarchy; primary agents route work through the worker CLI (claude or agent) via shell; ultron is the planning sub-agent (planner merged: skill-chooser + worker-selection per step); architect and code-reviewer are specialist subagents.
 4. **Worker CLI**: Verify at least one of `claude --version` or `agent --version` succeeds if you want planning/execution via CLI. See docs/cli-claude-code.md and docs/cli-cursor-agent.md.
 5. **MCP servers (7) connected**: Verify MCP tools like `ast-grep_find_code`, `context7_resolve-library-id`, and `web-search_search_web` are available. Planning/execution use worker CLIs via shell, not an MCP.
 
@@ -192,7 +192,7 @@ Use the update-config skill to update config.
 
 ### Agents Not Working
 
-1. Verify `opencode.json` has the `agent` section with `build`, `plan`, `orchestrator`, `sequencer`, `executor`, `explorer`, `ultron`, `architect`, and `code-reviewer` defined
+1. Verify `opencode.json` has the `agent` section with `build`, `plan`, `orchestrator`, `sequencer`, `executor`, `explore`, `ultron`, `architect`, and `code-reviewer` defined
 2. Verify worker CLI (optional): run `claude --version` or `agent --version` if using CLI for planning/execution
 3. Verify the prompts route planning, execution, verification, and review through the worker CLI (claude or agent) via shell per docs
 4. Antigravity models require auth — ensure `antigravity-accounts.json` is configured

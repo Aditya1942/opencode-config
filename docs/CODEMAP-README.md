@@ -10,7 +10,7 @@ This folder holds architecture and reference docs for the OpenCode config repo. 
 
 | What | Count | Where |
 |------|-------|--------|
-| **Agents** | 7 | build, plan, orchestrator, sequencer, executor, explorer, ultron |
+| **Agents** | 7 | build, plan, orchestrator, sequencer, executor, explore, ultron |
 | **MCPs** | 7 | memory, sequential-thinking, time, ast-grep, context7, grep-app, web-search |
 | **Skills** | 96+ | my-skills (95+), update-config |
 | **Worker CLI** | claude or agent | Via shell; see worker-selection-guide.md |

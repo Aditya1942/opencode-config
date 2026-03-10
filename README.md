@@ -28,16 +28,16 @@ The agent will fetch the installation document and execute every step to set up 
 
 ### Agent Architecture
 
-Primary agents route work through the **claude** or **agent** worker CLI via shell (see docs). Subagents sequencer, executor, explorer, architect, and code-reviewer use the chosen CLI or run locally as needed.
+Primary agents route work through the **claude** or **agent** worker CLI via shell (see docs). Subagents sequencer, executor, explore, architect, and code-reviewer use the chosen CLI or run locally as needed.
 
 | Agent | Model | Mode | Role |
 |-------|-------|------|------|
 | `build` (primary) | User-selected | primary | Default agent; worker-selection then chosen CLI via shell; for big/multi-step spawns @sequencer then @executor |
 | `plan` | User-selected | primary | Planning only; must spawn @ultron for plan (per-step skills + worker), then optional validation via CLI |
-| `orchestrator` | User-selected | primary | PURE dispatcher: routes to @explorer, @sequencer then @executor, or worker CLI via shell; never does task work directly |
+| `orchestrator` | User-selected | primary | PURE dispatcher: routes to @explore, @sequencer then @executor, or worker CLI via shell; never does task work directly |
 | `sequencer` | Claude Sonnet | subagent | Big task → worker-selection → chosen CLI via shell to produce ordered plan; spawn first for multi-step work |
 | `executor` | Claude Haiku | subagent | Takes plan → chosen CLI via shell to execute steps sequentially (validate + review per step); spawn after sequencer |
-| `explorer` | Claude Haiku | subagent | Read-only codebase summary via chosen CLI (explore/ask mode); use for mapping or onboarding |
+| `explore` | Claude Haiku | subagent | Read-only codebase summary via chosen CLI (explore/ask mode); use for mapping or onboarding |
 | `ultron` | Claude Sonnet | subagent | Planning sub-agent (planner merged): skill-chooser + worker-selection per step; phases, testing, risks; no execution |
 | `architect` | Claude Sonnet | subagent | Architecture specialist: system design, scalability, trade-offs, ADRs; for features or large refactors |
 | `code-reviewer` | Claude Sonnet | subagent | Code review: quality, security, maintainability; use after code changes before claiming done |
@@ -77,10 +77,10 @@ update-config
 |-------|-------|------|------|
 | **build** | User-selected | primary | Default agent; worker-selection then chosen CLI via shell; for big tasks spawn @sequencer then @executor |
 | **plan** | User-selected | primary | Planning only; must spawn @ultron for plan (per-step skills + worker), then optional validation via CLI |
-| **orchestrator** | User-selected | primary | PURE dispatcher: @explorer, @sequencer then @executor, or worker CLI via shell |
+| **orchestrator** | User-selected | primary | PURE dispatcher: @explore, @sequencer then @executor, or worker CLI via shell |
 | **sequencer** | Claude Sonnet | subagent | Big task → chosen CLI via shell to produce ordered plan |
 | **executor** | Claude Haiku | subagent | Executes plan steps via chosen CLI (validate + review per step) |
-| **explorer** | Claude Haiku | subagent | Read-only codebase summary via chosen CLI (explore/ask) |
+| **explore** | Claude Haiku | subagent | Read-only codebase summary via chosen CLI (explore/ask) |
 | **ultron** | Claude Sonnet | subagent | Planning sub-agent (planner merged): skill-chooser + worker-selection per step; structured plan, no execution |
 | **architect** | Claude Sonnet | subagent | Architecture specialist: system design, scalability, ADRs |
 | **code-reviewer** | Claude Sonnet | subagent | Code review: quality, security, maintainability; use after code changes |
@@ -129,7 +129,7 @@ Planning/execution use the **claude** or **agent** worker CLI via shell (see doc
 
 | Plugin | Purpose |
 |--------|---------|
-| `my-skills.js` | Bootstrap: injects skill framework via system prompt |
+| `my-skills.js` | Bootstrap: skill tool + worker_plan_task, worker_execute_task (worker CLI in plan/execute mode) |
 | `custom-hooks.js` | Context window monitor, tool output truncator, model fallback, preemptive compaction, rules injector |
 
 ---
@@ -179,7 +179,7 @@ Or inside OpenCode, run `/update-config`.
 ├── AGENTS.md                   # Agent instructions and coding standards
 ├── package.json                # Dependencies (@opencode-ai/plugin)
 ├── plugins/
-│   ├── my-skills.js            # Bootstrap plugin (skill framework)
+│   ├── my-skills.js            # Bootstrap: skill tool + worker_plan_task, worker_execute_task
 │   ├── custom-hooks.js         # Combined hooks plugin
 │   └── hooks/                  # Individual hook implementations
 ├── skills/

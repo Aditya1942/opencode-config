@@ -9,7 +9,7 @@
 
 OpenCode is a **configuration-only** repo: agents, skills, plugins, MCP servers, and slash commands. No application code. Runtime: Bun/Node.js; single dependency: `@opencode-ai/plugin`.
 
-**Core purpose:** Route tasks through the **claude** or **agent** worker CLI (via shell). Primary agents and subagents (sequencer, executor, explorer, ultron) use the chosen CLI for planning, execution, and read-only exploration. See [worker-selection-guide.md](worker-selection-guide.md) and [AGENTS.md](../AGENTS.md).
+**Core purpose:** Route tasks through the **claude** or **agent** worker CLI (via shell). Primary agents and subagents (sequencer, executor, explore, ultron) use the chosen CLI for planning, execution, and read-only exploration. See [worker-selection-guide.md](worker-selection-guide.md) and [AGENTS.md](../AGENTS.md).
 
 ---
 
@@ -31,7 +31,7 @@ OpenCode is a **configuration-only** repo: agents, skills, plugins, MCP servers,
     │  orchestrator,│ │  sequential│ │  custom-hooks│
     │  sequencer,   │ │  time,     │ │  antigravity │
     │  executor,    │ │  ast-grep, │ └──────────────┘
-    │  explorer,    │ │  context7, │
+    │  explore,     │ │  context7, │
     │  ultron       │ │  grep-app, │
     └──────┬────────┘ │  web-search│
            │          └─────┬──────┘
@@ -53,7 +53,7 @@ OpenCode is a **configuration-only** repo: agents, skills, plugins, MCP servers,
 | **opencode.json** | Source of truth: agents, commands, MCP, plugins (keys: `agent`, `command`) |
 | **AGENTS.md** (root) | Agent hierarchy, slash commands, skills table, coding standards |
 | **build** | Default agent; worker-selection then CLI via shell or @sequencer then @executor |
-| **orchestrator** | PURE dispatcher; routes to @explorer, @sequencer then @executor, or worker CLI |
+| **orchestrator** | PURE dispatcher; routes to @explore, @sequencer then @executor, or worker CLI |
 | **plan** | Planning only; must spawn @ultron; optional validation via CLI |
 | **plugins/my-skills.js** | Bootstrap: injects skill framework |
 | **.agents/plans/** | Implementation plans (output) |
@@ -66,10 +66,10 @@ OpenCode is a **configuration-only** repo: agents, skills, plugins, MCP servers,
 |-------|--------|------|------|
 | **build** | user-selected | primary | Worker-selection; big/multi-step → @sequencer then @executor; else worker CLI via shell |
 | **plan** | user-selected | primary | Must spawn @ultron for plan; optional validation via CLI; no implementation |
-| **orchestrator** | user-selected | primary | PURE dispatcher: @explorer, @sequencer then @executor, or worker CLI via shell |
+| **orchestrator** | user-selected | primary | PURE dispatcher: @explore, @sequencer then @executor, or worker CLI via shell |
 | **sequencer** | Claude Sonnet | subagent | Big task → chosen CLI via shell → ordered plan; spawn first |
 | **executor** | Claude Haiku | subagent | Plan → chosen CLI via shell → execute steps (validate + review per step); spawn after sequencer |
-| **explorer** | Claude Haiku | subagent | Read-only codebase summary via chosen CLI (explore/ask) |
+| **explore** | Claude Haiku | subagent | Read-only codebase summary via chosen CLI (explore/ask) |
 | **ultron** | Claude Sonnet | subagent | Planning: skill-chooser + worker-selection per step; structured plan only; no execution |
 
 Worker CLI: [worker-selection-guide.md](worker-selection-guide.md), [cli-claude-code.md](cli-claude-code.md), [cli-cursor-agent.md](cli-cursor-agent.md).

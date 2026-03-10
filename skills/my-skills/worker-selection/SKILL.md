@@ -1,51 +1,50 @@
 ---
 name: worker-selection
-description: "Decide which worker CLI to use — agent for all tasks (default, no permission); claude (Opus/Sonnet) only when very complex and with user permission. Use at task start. Then invoke the chosen CLI via shell per docs."
+description: "Decide which worker CLI to use — agent for all tasks (small to big); claude only when complex and explicitly requires brainstorming. Use at task start. Then invoke via worker_plan_task / worker_execute_task tool or CLI via shell."
 ---
 
 # Worker CLI Selection
 
-**Policy:** Use the **agent** CLI for all kinds of tasks; utilize it as much as possible without asking for permission. Use the **claude** CLI (Opus/Sonnet) only when the task is **very complex** and the **user has granted permission** to use claude. Both CLIs provide planning, exploration, implementation, verification, and review; use this skill to pick one, then **invoke the chosen CLI via shell** using docs/cli-claude-code.md or docs/cli-cursor-agent.md.
+**Policy:** Use the **agent** CLI for **all** tasks — small, medium, and big. Use the **claude** CLI only when the task is **complex and explicitly requires brainstorming** (or equivalent deep creative/exploratory reasoning), e.g. greenfield design, ambiguous requirements, or architecture exploration where the brainstorming skill is invoked. Both CLIs provide planning, exploration, implementation, verification, and review; use this skill to pick one, then **invoke the worker via the worker_plan_task or worker_execute_task tool** (or run the chosen CLI via shell if the tool is unavailable). See docs/cli-claude-code.md and docs/cli-cursor-agent.md.
 
 ## When to Use This Skill
 
 - At the **start of any substantive task**
 - When the user does not specify which worker CLI to use
 - After a claude quota/rate-limit failure (switch to agent)
-- When switching context (prefer agent unless very complex + permission)
+- When switching context (prefer agent unless complex + brainstorming required)
 
 ## Checklist
 
 1. **Quota gate**: If Claude Code quota is full or exhausted (run `opencode auth status`), **use agent for all tasks**. Stop here.
-2. **Permission for claude**: If the user has not granted permission to use claude, **use agent**. Utilize agent as much as possible without permission.
-3. **Classify the task**: Only if permission for claude exists, check if the task is very complex (see below).
-4. **Output your decision** in this form:
+2. **Classify the task**: Use **agent** for all task sizes (small to big). Use **claude** only when the task is complex and explicitly requires **brainstorming** (see below).
+3. **Output your decision** in this form:
 
    ```
    Worker CLI: [claude | agent]
    Reason: [one line]
-   (If claude: task is very complex and user granted permission; prefer Opus/Sonnet.)
+   (If claude: task is complex and requires brainstorming; prefer Opus/Sonnet.)
    ```
 
-5. **Invoke the CLI via shell** using the chosen doc. No MCP tools; use shell to run `claude` or `agent` with the appropriate prompt and flags.
+4. **Invoke the worker**: Prefer the **worker_plan_task** or **worker_execute_task** tool with the chosen worker, task, and workspace. If the tool is unavailable, run the `claude` or `agent` CLI via shell with the appropriate prompt and flags per docs.
 
 ## Task Classification
 
-### Use **claude** (Opus/Sonnet) only when **both** apply:
+### Use **claude** only when **both** apply:
 
-- User has **granted permission** to use claude (e.g. explicitly asked for claude or approved its use)
-- Task is **very complex**: token-heavy work, multi-step planning, architecture, deep implementation, mandatory verification, or specialist profile needed (planner, architect, code-reviewer, validator, tdd-guide, build-error-resolver, refactor-cleaner, doc-updater, skill-chooser)
+- Task is **complex** (greenfield design, ambiguous requirements, architecture exploration, or equivalent)
+- Task **explicitly requires brainstorming** (or equivalent deep creative/exploratory reasoning) — e.g. my-skills:brainstorming is invoked before implementation
 
-### Use **agent** (default):
+### Use **agent** (default for all agents and subagents):
 
-- For **all tasks** when permission for claude was not granted — utilize agent as much as possible without permission
+- For **all tasks** — small, medium, and big — unless the above claude criteria apply
 - When quota is full
-- For simple or moderate tasks even if permission exists (prefer agent to conserve claude quota)
+- For planning, execution, exploration, validation, and review
 
 ## After Deciding
 
-- **claude**: Run the `claude` CLI via shell. Use docs/cli-claude-code.md for syntax (plan_task = `claude -p "..." --permission-mode plan`, execute_task = `--permission-mode acceptEdits`, profile = `--append-system-prompt` with profile text; see doc for details). See docs/worker-selection-guide.md and docs/cli-claude-code.md for task-type routing.
-- **agent**: Run the `agent` CLI via shell. Use docs/cli-cursor-agent.md for syntax (plan_task = `agent -p "..." --trust --approve-mcps --mode plan`, execute_task = `--mode agent --force`).
+- **Preferred:** Invoke the worker via the **worker_plan_task** or **worker_execute_task** tool (worker, task, workspace; optional context, plan, model, profile). Use plan for read-only planning; use execute to apply edits.
+- **Fallback (CLI via shell):** **claude**: Run the `claude` CLI via shell. Use docs/cli-claude-code.md for syntax (plan_task = `claude -p "..." --permission-mode plan`, execute_task = `--permission-mode acceptEdits`). **agent**: Run the `agent` CLI via shell. Use docs/cli-cursor-agent.md for syntax (plan_task = `agent -p "..." --trust --approve-mcps --mode plan`, execute_task = `--mode agent --force`).
 
 ## Reference
 
