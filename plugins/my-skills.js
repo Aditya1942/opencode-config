@@ -2,28 +2,20 @@
  * My Skills Plugin for OpenCode
  *
  * Provides the `skill` tool that loads SKILL.md files from skills/my-skills/.
- * Also provides worker_plan_task and worker_execute_task to run the chosen
- * worker CLI (claude or agent) in plan-only or execute mode.
  *
  * Usage (in prompts/commands):
  *   Invoke the my-skills:brainstorming skill
  *   Load the skill-chooser skill from my-skills
- *   worker_plan_task / worker_execute_task after worker-selection
  */
 
 import { tool } from '@opencode-ai/plugin'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
-import { join, dirname, resolve } from 'node:path'
+import { join, dirname } from 'node:path'
+import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { spawnSync } from 'node:child_process'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-
-// Default timeout for worker CLI runs (10 minutes)
-const WORKER_TIMEOUT_MS = 600_000
-
-const CLAUDE_BIN = process.env.CLAUDE_CODE_BIN ?? 'claude'
-const AGENT_BIN = process.env.CURSOR_AGENT_BIN ?? 'agent'
+const RUN_CURSOR_AGENT_SCRIPT = join(__dirname, '..', 'scripts', 'run-cursor-agent.js')
 
 // Skills root: plugins/ is one level inside the config dir
 const SKILLS_ROOT = join(__dirname, '..', 'skills')
@@ -37,6 +29,11 @@ const COLLECTIONS = ['my-skills', 'update-config']
  *   - "brainstorming"           → searches all collections (subdir pattern)
  *   - "my-skills:brainstorming" → searches my-skills/<name>/SKILL.md
  *   - "update-config"           → searches update-config/SKILL.md (flat pattern)
+ *
+ * @description When no collection prefix is provided, collections are searched
+ * in priority order: `my-skills` is searched first, then `update-config`.
+ * The first matching SKILL.md found wins. To target a specific collection,
+ * use the "collection:skill-name" prefix format.
  *
  * @param {string} name
  * @returns {{ path: string, collection: string, skillName: string } | null}
@@ -112,73 +109,6 @@ const listSkills = () => {
   return skills
 }
 
-/**
- * Run worker CLI (claude or agent) and return a structured result.
- * Policy: prefer "agent" for all task sizes; use "claude" only when task is
- * complex and requires brainstorming. Call after worker-selection.
- *
- * @param {'claude'|'agent'} worker
- * @param {string} prompt - Full prompt text for the CLI
- * @param {string} workspaceAbs - Absolute path to project root
- * @param {object} opts - { mode: 'plan'|'execute', model?, profile? (claude only) }
- * @returns {{ success: boolean, stdout?: string, stderr?: string, exitCode?: number, error?: string }}
- */
-const runWorker = (worker, prompt, workspaceAbs, opts = {}) => {
-  const { mode = 'plan', model, profile } = opts
-  const result = { success: false, stdout: '', stderr: '', exitCode: -1 }
-
-  if (worker === 'agent') {
-    const args = [
-      '-p', prompt,
-      '--trust', '--approve-mcps',
-      '--mode', mode === 'plan' ? 'plan' : 'agent',
-      '--workspace', workspaceAbs
-    ]
-    if (mode === 'execute') args.push('--force')
-    if (model) args.push('--model', model)
-    const out = spawnSync(AGENT_BIN, args, {
-      encoding: 'utf-8',
-      timeout: WORKER_TIMEOUT_MS,
-      maxBuffer: 50 * 1024 * 1024
-    })
-    result.stdout = out.stdout ?? ''
-    result.stderr = out.stderr ?? ''
-    result.exitCode = out.status ?? (out.signal ? -1 : 0)
-    result.success = result.exitCode === 0
-    if (out.error) result.error = out.error.message
-    else if (!result.success && result.stderr) result.error = result.stderr.slice(0, 500)
-    else if (!result.success) result.error = `Worker exited with code ${result.exitCode}`
-    return result
-  }
-
-  if (worker === 'claude') {
-    const args = [
-      '-p', prompt,
-      '--output-format', 'json',
-      '--permission-mode', mode === 'plan' ? 'plan' : 'acceptEdits'
-    ]
-    if (model) args.push('--model', model)
-    if (profile) args.push('--append-system-prompt', `Profile: ${profile}.`)
-    const out = spawnSync(CLAUDE_BIN, args, {
-      encoding: 'utf-8',
-      cwd: workspaceAbs,
-      timeout: WORKER_TIMEOUT_MS,
-      maxBuffer: 50 * 1024 * 1024
-    })
-    result.stdout = out.stdout ?? ''
-    result.stderr = out.stderr ?? ''
-    result.exitCode = out.status ?? (out.signal ? -1 : 0)
-    result.success = result.exitCode === 0
-    if (out.error) result.error = out.error.message
-    else if (!result.success && result.stderr) result.error = result.stderr.slice(0, 500)
-    else if (!result.success) result.error = `Worker exited with code ${result.exitCode}`
-    return result
-  }
-
-  result.error = `Unknown worker: ${worker}. Use "agent" or "claude".`
-  return result
-}
-
 export const MySkillsPlugin = async (_ctx) => {
   return {
     tool: {
@@ -239,91 +169,141 @@ export const MySkillsPlugin = async (_ctx) => {
         },
       }),
 
-      worker_plan_task: tool({
+      cursor_agent: tool({
         description:
-          'Run the selected worker CLI (claude or agent) in plan-only mode. Call after worker-selection (my-skills:worker-selection). ' +
-          'Prefer worker="agent" for all task sizes; use worker="claude" only when the task is complex and requires brainstorming. ' +
-          'Returns a JSON object with success, stdout, stderr, exitCode, and error (on failure).',
+          'Run the Cursor CLI agent with a prompt and return only the final success result text. ' +
+          'Use for coding tasks best handled by Cursor\'s agent: editing files, running shell commands, exploring a codebase, or making targeted changes in a specific directory. ' +
+          'Set mode="agent" (default) to execute edits/commands; mode="plan" for analysis/planning only (no file mutations); mode="ask" for Q&A explanations. ' +
+          'Set include_thinking=true to surface agent reasoning — useful when debugging complex tasks or verifying decisions. ' +
+          'Always set cwd when the task involves specific project files. ' +
+          'On failure returns an explicit error string (never silent failure) so you can diagnose and retry.',
 
         args: {
-          worker: tool.schema
-            .enum(['claude', 'agent'])
-            .describe('Which worker CLI to use. Prefer "agent" for all tasks; use "claude" only when complex and brainstorming is required.'),
-          task: tool.schema.string().describe('The task description to plan (e.g. "Add API endpoint for user preferences").'),
+          prompt: tool.schema
+            .string()
+            .describe(
+              'The exact prompt to send to the Cursor agent. Be specific: include file paths, expected outcome, and any constraints. ' +
+              'Example: "Add a JSDoc comment to the parseConfig function in src/config.js"'
+            ),
+          cwd: tool.schema
+            .string()
+            .describe(
+              'Working directory for the agent. REQUIRED when the task involves specific project files. ' +
+              'Defaults to the opencode config directory if omitted, which is almost never what you want for project tasks.'
+            )
+            .optional(),
+          mode: tool.schema
+            .string()
+            .describe(
+              'Execution mode: "agent" (default) — full access, can edit files and run commands; ' +
+              '"plan" — read-only analysis and planning, no file mutations; ' +
+              '"ask" — Q&A explanations, read-only.'
+            )
+            .optional(),
+          model: tool.schema
+            .string()
+            .describe(
+              'Model to use. Recommended values: "auto" (Cursor picks best model) or "composer-1.5". ' +
+              'Optional; uses the Cursor account default if omitted. ' +
+              'NOTE: ignored when include_thinking=true (ACP mode does not support model selection).'
+            )
+            .optional(),
           workspace: tool.schema
             .string()
-            .optional()
-            .describe('Project root path. If omitted, the session project directory is used.'),
-          context: tool.schema.string().optional().describe('Optional extra context for the plan.'),
-          model: tool.schema.string().optional().describe('Model override (e.g. sonnet, opus for claude; gpt-5.2 for agent).'),
-          profile: tool.schema
-            .string()
-            .optional()
-            .describe('Claude-only: profile name (e.g. planner, architect). Ignored when worker is agent.')
+            .describe(
+              'Workspace root path override for the agent (passed as --workspace to agent CLI). ' +
+              'Must be an absolute path. Optional; use when the workspace root differs from cwd. ' +
+              'NOTE: ignored when include_thinking=true (ACP mode).'
+            )
+            .optional(),
+          include_thinking: tool.schema
+            .boolean()
+            .describe(
+              'If true, runs in ACP (Agent Client Protocol) mode and captures the agent\'s thinking alongside the result. ' +
+              'Output format: "Result:\\n<text>\\n\\nThinking:\\n<chunks>". ' +
+              'Slower than default print mode (up to ~80s total: 4 requests × 20s timeout each). ' +
+              'Cannot be combined with model or workspace. Use only when reasoning transparency is needed.'
+            )
+            .optional(),
         },
 
-        async execute(args, context) {
-          const workspaceAbs = resolve(args.workspace ?? context.directory ?? process.cwd())
-          const prompt = [
-            'Create a concrete implementation plan for the task below.',
-            'Return a concise numbered plan with assumptions, risks, and verification steps.',
-            '',
-            'Task: ' + args.task,
-            args.context ? 'Context: ' + args.context : ''
-          ].filter(Boolean).join('\n')
+        async execute({ prompt, cwd, mode, model, workspace, include_thinking }) {
+          // Validate mode early to prevent silent fallback to destructive 'agent' mode
+          const VALID_MODES = ['agent', 'plan', 'ask']
+          if (mode && !VALID_MODES.includes(mode)) {
+            return JSON.stringify({ success: false, error: `Invalid mode "${mode}". Valid modes: ${VALID_MODES.join(', ')}` })
+          }
 
-          const result = runWorker(args.worker, prompt, workspaceAbs, {
-            mode: 'plan',
-            model: args.model,
-            profile: args.profile
+          // Validate cwd is absolute if provided
+          const { resolve: pathResolve } = await import('node:path')
+          const resolvedCwd = cwd ? pathResolve(cwd) : undefined
+
+          const argv = [RUN_CURSOR_AGENT_SCRIPT]
+          if (resolvedCwd) argv.push('--cwd', resolvedCwd)
+          if (mode)         argv.push('--mode', mode)
+          if (model)        argv.push('--model', model)
+          if (workspace)    argv.push('--workspace', workspace)
+          if (include_thinking) argv.push('--thinking')
+          argv.push('--', prompt ?? '')
+
+          // Outer timeout guards against ACP mode worst-case (4 requests × 20s = 80s)
+          // plus buffer for startup/shutdown. Prevents indefinite hangs at the plugin level.
+          const OUTER_TIMEOUT_MS = 120_000
+
+          return new Promise((resolve) => {
+            let done = false
+
+            const outerTimer = setTimeout(() => {
+              if (!done) {
+                done = true
+                try { child.kill() } catch (_) {}
+                resolve(JSON.stringify({ success: false, error: `cursor_agent timed out after ${OUTER_TIMEOUT_MS / 1000}s` }))
+              }
+            }, OUTER_TIMEOUT_MS)
+
+            const child = spawn(process.execPath, argv, {
+              cwd: join(__dirname, '..'),
+              stdio: ['ignore', 'pipe', 'pipe'],
+            })
+            let stdout = ''
+            let stderr = ''
+            child.stdout.setEncoding('utf8')
+            child.stderr.setEncoding('utf8')
+            child.stdout.on('data', (chunk) => { stdout += chunk })
+            child.stderr.on('data', (chunk) => { stderr += chunk })
+            child.on('close', (code) => {
+              clearTimeout(outerTimer)
+              if (done) return
+              done = true
+              try {
+                const lastLine = stdout.trim().split('\n').pop()
+                if (!lastLine) {
+                  resolve(JSON.stringify({ success: false, error: stderr.trim() || `Exit code ${code}` }))
+                  return
+                }
+                const parsed = JSON.parse(lastLine)
+                if (parsed.success && parsed.result != null) {
+                  const out = parsed.thinking?.length
+                    ? `Result:\n${parsed.result}\n\nThinking:\n${parsed.thinking.join('\n')}`
+                    : parsed.result
+                  resolve(out)
+                } else {
+                  resolve(JSON.stringify({ success: false, error: parsed.error || stderr.trim() || `Exit code ${code}` }))
+                }
+              } catch (_) {
+                resolve(JSON.stringify({ success: false, error: stderr.trim() || stdout || `Exit code ${code}` }))
+              }
+            })
+            child.on('error', (err) => {
+              clearTimeout(outerTimer)
+              if (!done) {
+                done = true
+                resolve(JSON.stringify({ success: false, error: `Failed to run script: ${err.message}` }))
+              }
+            })
           })
-          return JSON.stringify(result)
-        }
+        },
       }),
-
-      worker_execute_task: tool({
-        description:
-          'Run the selected worker CLI (claude or agent) in execute mode (apply edits). Call after worker-selection (my-skills:worker-selection). ' +
-          'Prefer worker="agent" for all task sizes; use worker="claude" only when the task is complex and requires brainstorming. ' +
-          'Returns a JSON object with success, stdout, stderr, exitCode, and error (on failure).',
-
-        args: {
-          worker: tool.schema
-            .enum(['claude', 'agent'])
-            .describe('Which worker CLI to use. Prefer "agent" for all tasks; use "claude" only when complex and brainstorming is required.'),
-          task: tool.schema.string().describe('The task to execute.'),
-          workspace: tool.schema
-            .string()
-            .optional()
-            .describe('Project root path. If omitted, the session project directory is used.'),
-          plan: tool.schema.string().optional().describe('Optional plan from a previous worker_plan_task (or context).'),
-          context: tool.schema.string().optional().describe('Optional extra context.'),
-          model: tool.schema.string().optional().describe('Model override.'),
-          profile: tool.schema
-            .string()
-            .optional()
-            .describe('Claude-only profile. Ignored when worker is agent.')
-        },
-
-        async execute(args, context) {
-          const workspaceAbs = resolve(args.workspace ?? context.directory ?? process.cwd())
-          const prompt = [
-            'Execute the task below using the worker.',
-            'Prefer small, verifiable changes and summarize what you changed.',
-            '',
-            'Task: ' + args.task,
-            args.plan ? 'Plan: ' + args.plan : '',
-            args.context ? 'Context: ' + args.context : ''
-          ].filter(Boolean).join('\n')
-
-          const result = runWorker(args.worker, prompt, workspaceAbs, {
-            mode: 'execute',
-            model: args.model,
-            profile: args.profile
-          })
-          return JSON.stringify(result)
-        }
-      })
     },
   }
 }

@@ -455,7 +455,7 @@ Skills don't have explicit versions. Breaking changes:
 ### Quick Links
 - **All skills:** `skills/my-skills/` (95+), plus update-config (96+ total in repo)
 - **Skill chooser:** `skills/my-skills/skill-chooser/SKILL.md`
-- **Routing:** docs/worker-selection-guide.md, AGENTS.md
+- **Routing:** AGENTS.md
 - **Config updates:** `skills/update-config/SKILL.md`
 
 ### Useful Commands

@@ -1,13 +1,13 @@
 # Model & Agent Management Guide
 
-How to replace, add, or reconfigure models and agents in the OpenCode config. **Current config:** 7 agents (build, plan, orchestrator, sequencer, executor, explore, ultron); task work is routed through the **claude** or **agent** worker CLI via shell. See [../worker-selection-guide.md](../worker-selection-guide.md) and root [AGENTS.md](../../AGENTS.md).
+How to replace, add, or reconfigure models and agents in the OpenCode config. **Current config:** 7 agents (build, plan, orchestrator, sequencer, executor, explore, ultron); task work is done by subagents using tools. See root [AGENTS.md](../../AGENTS.md).
 
 ---
 
 ## 1. How It Works
 
 1. **Agent definitions** in `opencode.json` — under the `agent` key. Each entry can have `model`, `mode`, `description`, `prompt`.
-2. **Subagents** (sequencer, executor, explore, ultron) are invoked via the Task tool / `@mention`; they use the chosen worker CLI (claude or agent) via shell for actual work.
+2. **Subagents** (sequencer, executor, explore, ultron) are invoked via the Task tool / `@mention`; they use tools (Read, Write, Edit, Bash) for actual work.
 3. **Model inheritance** — if an agent has no `model` field, it may inherit from the invoking context; primary agents typically use user-selected model.
 
 **Key rule:** Agents defined in `opencode.json` under `agent` are available as subagents. Adding an agent named `foo` with `"mode": "subagent"` makes it available as `@foo` / Task tool.
@@ -18,15 +18,13 @@ How to replace, add, or reconfigure models and agents in the OpenCode config. **
 
 | Agent | Model | Mode | Purpose |
 |-------|-------|------|---------|
-| `build` | user-selected | primary | Default agent; worker-selection then CLI or @sequencer then @executor |
-| `plan` | user-selected | primary | Planning only; must spawn @ultron; optional validation via CLI |
-| `orchestrator` | user-selected | primary | PURE dispatcher; routes to @explore, @sequencer then @executor, or worker CLI |
-| `sequencer` | Claude Sonnet | subagent | Big task → chosen CLI via shell → ordered plan |
-| `executor` | Claude Haiku | subagent | Plan → chosen CLI via shell → execute steps (validate + review per step) |
-| `explore` | Claude Haiku | subagent | Read-only codebase summary via chosen CLI (explore/ask) |
-| `ultron` | Claude Sonnet | subagent | Planning: skill-chooser + worker-selection per step; structured plan only |
-
-Routing and worker choice: [worker-selection-guide.md](../worker-selection-guide.md).
+| `build` | user-selected | primary | Default agent; @sequencer then @executor or do work directly using tools |
+| `plan` | user-selected | primary | Planning only; must spawn @ultron; optional validation via executor or directly |
+| `orchestrator` | user-selected | primary | PURE dispatcher; routes to @explore, @sequencer then @executor, or delegate |
+| `sequencer` | Claude Sonnet | subagent | Big task → tools → ordered plan |
+| `executor` | Claude Haiku | subagent | Plan → tools → execute steps (validate + review per step) |
+| `explore` | Claude Haiku | subagent | Read-only codebase summary using tools |
+| `ultron` | Claude Sonnet | subagent | Planning: skill-chooser per step; structured plan only |
 
 ---
 

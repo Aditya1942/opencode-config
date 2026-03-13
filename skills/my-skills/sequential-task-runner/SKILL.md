@@ -1,11 +1,11 @@
 ---
 name: sequential-task-runner
-description: "Use when a big or multi-step task should be completed sequentially via the worker CLIs. Spawn sequencer then executor subagents; they use Claude Sonnet/Haiku and run claude or agent via shell per docs."
+description: "Use when a big or multi-step task should be completed sequentially. Spawn sequencer then cursor-general (Cursor-native) or executor (opencode tools); they complete work sequentially."
 ---
 
 # Sequential Task Runner (Subagent Flow)
 
-When the task is **big** or **multi-step**, build and orchestrator should **spawn two subagents in order**; they complete the work sequentially using the chosen worker CLI (claude or agent) **via shell** per docs/cli-claude-code.md and docs/cli-cursor-agent.md.
+When the task is **big** or **multi-step**, build and orchestrator should **spawn two subagents in order**; they complete the work sequentially using tools or the cursor_agent tool.
 
 ## When to Use
 
@@ -15,28 +15,37 @@ When the task is **big** or **multi-step**, build and orchestrator should **spaw
 
 ## Subagents
 
-| Subagent | Model | Role |
-|----------|--------|------|
-| **@sequencer** | Claude Sonnet | Takes the big task; runs worker-selection; uses chosen CLI via shell to plan and decompose into an **ordered list of steps**. Outputs plan only (no execution). Syntax: docs/cli-claude-code.md or docs/cli-cursor-agent.md (plan mode). |
-| **@executor** | Claude Haiku | Takes the plan (from sequencer or context); runs worker-selection; **executes steps one-by-one** via chosen CLI via shell, with validate + review after each step. Syntax: docs. |
+| Subagent | Model | Role | When to use |
+|----------|-------|------|-------------|
+| **@sequencer** | Claude Sonnet | Takes the big task; decomposes into an **ordered list of steps**. Outputs plan only. | Always first for multi-step work |
+| **@cursor-general** | Claude Sonnet | Takes the plan; **executes steps via cursor_agent** (agent mode), with validate + review after each step. | Preferred for Cursor-native execution |
+| **@executor** | Claude Haiku | Takes the plan; **executes steps via opencode tools** (Read/Write/Edit/Bash), with validate + review after each step. | Fallback when cursor_agent unavailable |
 
-## Flow
+## Flows
 
-1. **Build or orchestrator** invokes my-skills:worker-selection (or has already chosen worker CLI).
-2. For **big/multi-step** task: spawn **@sequencer** with the task. Wait for the ordered plan.
-3. Spawn **@executor** with the plan (and task context). Executor runs steps sequentially via the CLI (shell).
-4. Build/orchestrator summarizes outcome and any remaining risks.
+### Cursor-Native Flow (preferred)
+1. Spawn **@sequencer** with the task → ordered plan
+2. Spawn **@cursor-general** with the plan → executes steps via cursor_agent
+3. Spawn **@cursor-reviewer** → reviews changes
+4. Build/orchestrator summarizes outcome and risks
+
+### OpenCode Tools Flow (fallback)
+1. Spawn **@sequencer** with the task → ordered plan
+2. Spawn **@executor** with the plan → executes steps via Read/Write/Edit/Bash
+3. Spawn **@code-reviewer** → reviews changes
+4. Build/orchestrator summarizes outcome and risks
 
 ## Checklist
 
 - [ ] Confirm task is big or multi-step before spawning subagents.
-- [ ] Spawn **sequencer** first; do not spawn executor without a plan unless executor can infer one.
-- [ ] Pass the sequencer's output (numbered steps, assumptions, risks) to the executor.
-- [ ] Let sequencer and executor use their own worker-selection (they may choose different CLI if quota changes).
-- [ ] Do not do the same work locally; subagents own planning and execution via the CLIs (shell).
+- [ ] Spawn **@sequencer** first; do not spawn executor/cursor-general without a plan.
+- [ ] Pass the sequencer's output (numbered steps, assumptions, risks) to the execution agent.
+- [ ] After execution: spawn **@cursor-reviewer** or **@code-reviewer** before marking done.
+- [ ] Do not do the same work locally; subagents own planning and execution.
 
 ## Anti-patterns
 
-- Spawning executor without a plan when the task is ambiguous.
-- Doing token-heavy planning or execution locally instead of delegating to sequencer/executor.
-- Spawning sequencer for trivial single-step tasks (handle those directly).
+- Spawning an execution agent without a plan when the task is ambiguous.
+- Doing token-heavy planning or execution locally instead of delegating.
+- Spawning sequencer for trivial single-step tasks (use @cursor-general directly).
+- Skipping the review step after execution.

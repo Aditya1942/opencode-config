@@ -28,21 +28,22 @@ The agent will fetch the installation document and execute every step to set up 
 
 ### Agent Architecture
 
-Primary agents route work through the **claude** or **agent** worker CLI via shell (see docs). Subagents sequencer, executor, explore, architect, and code-reviewer use the chosen CLI or run locally as needed.
+Primary agents route work through subagents or do it directly using tools. Subagents sequencer, executor, explore, architect, and code-reviewer use opencode tools (Read, Write, Edit, Bash). Cursor-native subagents cursor-explorer, cursor-general, and cursor-reviewer delegate all work to the cursor_agent tool (Cursor CLI).
 
 | Agent | Model | Mode | Role |
 |-------|-------|------|------|
-| `build` (primary) | User-selected | primary | Default agent; worker-selection then chosen CLI via shell; for big/multi-step spawns @sequencer then @executor |
-| `plan` | User-selected | primary | Planning only; must spawn @ultron for plan (per-step skills + worker), then optional validation via CLI |
-| `orchestrator` | User-selected | primary | PURE dispatcher: routes to @explore, @sequencer then @executor, or worker CLI via shell; never does task work directly |
-| `sequencer` | Claude Sonnet | subagent | Big task → worker-selection → chosen CLI via shell to produce ordered plan; spawn first for multi-step work |
-| `executor` | Claude Haiku | subagent | Takes plan → chosen CLI via shell to execute steps sequentially (validate + review per step); spawn after sequencer |
-| `explore` | Claude Haiku | subagent | Read-only codebase summary via chosen CLI (explore/ask mode); use for mapping or onboarding |
-| `ultron` | Claude Sonnet | subagent | Planning sub-agent (planner merged): skill-chooser + worker-selection per step; phases, testing, risks; no execution |
+| `build` (primary) | User-selected | primary | Default agent; for big/multi-step spawns @sequencer then @executor; for small/single-step does work directly using tools |
+| `plan` | User-selected | primary | Planning only; must spawn @ultron for plan (per-step skills), then optional validation via executor or directly |
+| `orchestrator` | User-selected | primary | PURE dispatcher: routes to @explore, @sequencer then @executor, or delegate; never does task work directly |
+| `sequencer` | Claude Sonnet | subagent | Big task → tools → ordered plan; spawn first for multi-step work |
+| `executor` | Claude Haiku | subagent | Takes plan → tools → execute steps sequentially (validate + review per step); spawn after sequencer |
+| `explore` | Claude Haiku | subagent | Read-only codebase summary using tools; use for mapping or onboarding |
+| `ultron` | Claude Sonnet | subagent | Planning sub-agent (planner merged): skill-chooser per step; phases, testing, risks; no execution |
 | `architect` | Claude Sonnet | subagent | Architecture specialist: system design, scalability, trade-offs, ADRs; for features or large refactors |
 | `code-reviewer` | Claude Sonnet | subagent | Code review: quality, security, maintainability; use after code changes before claiming done |
-
-See docs/worker-selection-guide.md for CLI routing and when to use claude vs agent.
+| `cursor-explorer` | Claude Sonnet | subagent | Read-only exploration + summarization via cursor_agent (plan/ask); Cursor-native alternative to @explore |
+| `cursor-general` | Claude Sonnet | subagent | Execution workhorse via cursor_agent (agent mode): implementation, coding tasks, plan execution |
+| `cursor-reviewer` | Claude Sonnet | subagent | Code review via cursor_agent (ask/plan): quality, security, maintainability; read-only; use after code changes |
 
 ### 97 Skills
 
@@ -64,7 +65,7 @@ update-config
 | `/init-readme` | Initialize or refresh README.md for a package/module |
 | `/remember-this` | Save compact memory (decisions, gotchas) for current module |
 | `/recall` | Retrieve stored memory for a module or topic |
-| `/ultron` | Get plan with per-step skills and worker assignment (spawns @ultron) |
+| `/ultron` | Get plan with per-step skills (spawns @ultron) |
 | `/antigravity-quota` | Check Antigravity API quota (plugin-provided) |
 
 ---
@@ -75,17 +76,18 @@ update-config
 
 | Agent | Model | Mode | Role |
 |-------|-------|------|------|
-| **build** | User-selected | primary | Default agent; worker-selection then chosen CLI via shell; for big tasks spawn @sequencer then @executor |
-| **plan** | User-selected | primary | Planning only; must spawn @ultron for plan (per-step skills + worker), then optional validation via CLI |
-| **orchestrator** | User-selected | primary | PURE dispatcher: @explore, @sequencer then @executor, or worker CLI via shell |
-| **sequencer** | Claude Sonnet | subagent | Big task → chosen CLI via shell to produce ordered plan |
-| **executor** | Claude Haiku | subagent | Executes plan steps via chosen CLI (validate + review per step) |
-| **explore** | Claude Haiku | subagent | Read-only codebase summary via chosen CLI (explore/ask) |
-| **ultron** | Claude Sonnet | subagent | Planning sub-agent (planner merged): skill-chooser + worker-selection per step; structured plan, no execution |
+| **build** | User-selected | primary | Default agent; for big tasks spawn @sequencer then @executor; else do work directly using tools |
+| **plan** | User-selected | primary | Planning only; must spawn @ultron for plan (per-step skills), then optional validation via executor or directly |
+| **orchestrator** | User-selected | primary | PURE dispatcher: @explore, @sequencer then @executor, or delegate |
+| **sequencer** | Claude Sonnet | subagent | Big task → tools → ordered plan |
+| **executor** | Claude Haiku | subagent | Executes plan steps using tools (validate + review per step) |
+| **explore** | Claude Haiku | subagent | Read-only codebase summary using tools |
+| **ultron** | Claude Sonnet | subagent | Planning sub-agent (planner merged): skill-chooser per step; structured plan, no execution |
 | **architect** | Claude Sonnet | subagent | Architecture specialist: system design, scalability, ADRs |
 | **code-reviewer** | Claude Sonnet | subagent | Code review: quality, security, maintainability; use after code changes |
-
-Worker choice: docs/worker-selection-guide.md.
+| **cursor-explorer** | Claude Sonnet | subagent | Read-only exploration, summarization, brainstorming via cursor_agent (plan/ask); Cursor-native @explore |
+| **cursor-general** | Claude Sonnet | subagent | Execution workhorse via cursor_agent (agent mode): implementation, coding, plan execution |
+| **cursor-reviewer** | Claude Sonnet | subagent | Code review via cursor_agent (ask/plan): quality, security, maintainability; read-only |
 
 ### Commands (slash)
 
@@ -99,7 +101,7 @@ Worker choice: docs/worker-selection-guide.md.
 | `/init-readme` | Initialize or refresh README.md for package/module |
 | `/remember-this` | Save compact memory for current module |
 | `/recall` | Retrieve stored memory for module or topic |
-| `/ultron` | Plan with per-step skills and worker assignment (spawns @ultron) |
+| `/ultron` | Plan with per-step skills (spawns @ultron) |
 | `/antigravity-quota` | Check Antigravity API quota (plugin-provided) |
 
 ### Skills
@@ -123,13 +125,13 @@ Use the `skill` tool to load skills; never read `SKILL.md` directly.
 | **grep-app** | Web / Search | GitHub code search | searchCode, grep_query |
 | **web-search** | Web / Search | Free web search + URL fetching | search_web, fetch_url; no API key |
 
-Planning/execution use the **claude** or **agent** worker CLI via shell (see docs/cli-claude-code.md, docs/cli-cursor-agent.md), not an MCP. MCP config: `opencode.json`.
+MCP config: `opencode.json`.
 
 ### Plugins
 
 | Plugin | Purpose |
 |--------|---------|
-| `my-skills.js` | Bootstrap: skill tool + worker_plan_task, worker_execute_task (worker CLI in plan/execute mode) |
+| `my-skills.js` | Bootstrap: skill tool (loads SKILL.md from skills) |
 | `custom-hooks.js` | Context window monitor, tool output truncator, model fallback, preemptive compaction, rules injector |
 
 ---
@@ -179,7 +181,7 @@ Or inside OpenCode, run `/update-config`.
 ├── AGENTS.md                   # Agent instructions and coding standards
 ├── package.json                # Dependencies (@opencode-ai/plugin)
 ├── plugins/
-│   ├── my-skills.js            # Bootstrap: skill tool + worker_plan_task, worker_execute_task
+│   ├── my-skills.js            # Bootstrap: skill tool
 │   ├── custom-hooks.js         # Combined hooks plugin
 │   └── hooks/                  # Individual hook implementations
 ├── skills/
@@ -188,7 +190,7 @@ Or inside OpenCode, run `/update-config`.
 ├── .agents/
 │   ├── plans/                  # Implementation plans
 │   └── drafts/                 # Draft plans and interview notes
-├── docs/                       # Guides (worker-selection, CLI refs, ultron-design, etc.)
+├── docs/                       # Guides (ultron-design, config-change-checklist, etc.)
 └── .opencode/
     └── INSTALL.md              # Agent-executable installation guide
 ```
@@ -201,8 +203,6 @@ Or inside OpenCode, run `/update-config`.
 - Git
 - Bun (or Node.js)
 - Antigravity auth (optional — for Antigravity model providers)
-- At least one worker CLI on PATH for planning/execution: **claude** (Claude Code) or **agent** (Cursor); see docs/cli-claude-code.md, docs/cli-cursor-agent.md
-
 ---
 
 ## License

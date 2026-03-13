@@ -46,10 +46,10 @@ Run the following commands to update everything:
 
 After updating, verify these components are present:
 
-- **MCPs (6):** memory, sequential-thinking, time, ast-grep, context7, grep-app, web-search (planning/execution via worker CLI: claude or agent, see docs/cli-claude-code.md, docs/cli-cursor-agent.md)
-- **Claudepowers skills (5):** code-review, explanatory-output, frontend-design, readme-driven-code-understanding, security-guidance
-- **Other skills:** update-config; my-skills includes ultron-planning (plan with per-step skills and worker)
-- **Superpowers skills (15):** symlinked from superpowers repo
+- **MCPs (7):** memory, sequential-thinking, time, ast-grep, context7, grep-app, web-search
+- **Agents (12):** build, plan, orchestrator, sequencer, executor, explore, ultron, architect, code-reviewer, cursor-explorer, cursor-general, cursor-reviewer
+- **Other skills:** update-config; my-skills includes ultron-planning (plan with per-step skills), cursor-agent (Cursor CLI delegation)
+- **Cursor-native subagents:** cursor-explorer (read-only exploration), cursor-general (execution workhorse), cursor-reviewer (code review) — all delegate to cursor_agent tool
 
 ## Output
 

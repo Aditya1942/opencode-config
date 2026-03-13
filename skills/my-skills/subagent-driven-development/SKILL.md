@@ -1,40 +1,48 @@
 ---
 name: subagent-driven-development
-description: "Orchestrator must use this. All work via subagents (@sequencer, @executor, @explore) or worker CLI (claude or agent) via shell; never perform tasks directly."
+description: "Orchestrator must use this. All work via subagents (@sequencer, @executor, @explore, @cursor-explorer, @cursor-general, @cursor-reviewer); never perform tasks directly."
 ---
 
 # Subagent-Driven Development (Orchestrator)
 
-The **orchestrator** must follow subagent-driven development: it **never performs the task directly**. All work is done by **subagents** or by running the **worker CLI** (claude or agent) **via shell** per docs/cli-claude-code.md and docs/cli-cursor-agent.md.
+The **orchestrator** must follow subagent-driven development: it **never performs the task directly**. All work is done by **subagents** using tools (Read, Write, Edit, Bash) or the cursor_agent tool.
 
 ## Iron Rule
 
-- **Always** choose the worker CLI via my-skills:worker-selection (claude or agent).
-- **Always** drive work through subagents or by **running the chosen CLI via shell** — **never** read, write, edit, or run bash to do the task yourself.
-- **Allowed:** Dispatch @sequencer, @executor, @explore; run `claude` or `agent` via shell with the right prompt and flags (see docs); synthesize results; summarize; ask the user.
+- **Always** drive work through subagents — **never** read, write, edit, or run bash to do the task yourself.
+- **Allowed:** Dispatch subagents; synthesize results; summarize; ask the user.
 
 ## When to Use (Orchestrator)
 
 The orchestrator invokes this skill at **every** session start. No exceptions.
 
+## Subagent Routing Table
+
+| Task | Preferred | Alternative |
+|------|-----------|-------------|
+| Codebase exploration / summary | @cursor-explorer (Cursor-native) | @explore (opencode tools, Haiku) |
+| Big / multi-step execution | @sequencer → @cursor-general (Cursor-native) | @sequencer → @executor (opencode tools, Haiku) |
+| Small / single-step coding | @cursor-general | direct tools |
+| Planning-only | @ultron or @cursor-explorer (mode=plan) | @sequencer |
+| Code review | @cursor-reviewer (Cursor-native) | @code-reviewer |
+
 ## Checklist
 
-- [ ] Invoke my-skills:worker-selection to choose worker CLI (claude or agent).
-- [ ] For codebase exploration/summary → spawn @explore.
-- [ ] For big or multi-step tasks → spawn @sequencer, then @executor with the plan.
-- [ ] For planning-only → run chosen CLI in plan mode via shell (docs); do not implement.
-- [ ] All execution, exploration, and validation go through subagents or CLI via shell — never perform them locally.
-- [ ] Summarize outcomes and risks after subagents/CLI complete.
+- [ ] For codebase exploration/summary → spawn @cursor-explorer (or @explore for lightweight).
+- [ ] For big or multi-step tasks → spawn @sequencer, then @cursor-general (or @executor) with the plan.
+- [ ] For planning-only → spawn @ultron; optionally @cursor-explorer for architecture context.
+- [ ] For code review → spawn @cursor-reviewer (or @code-reviewer).
+- [ ] All execution, exploration, and validation go through subagents — never perform them locally.
+- [ ] Summarize outcomes and risks after subagents complete.
 
 ## Forbidden (Orchestrator)
 
-- Do **not** read files to implement or explore the codebase (dispatch @explore or run CLI in explore/ask mode).
-- Do **not** write or edit files (dispatch @executor or run CLI in execute mode).
-- Do **not** run bash for task execution (subagents or CLI do that).
-- Do **not** do token-heavy analysis locally (use CLI via shell or @sequencer/@executor/@explore).
+- Do **not** read files to implement or explore the codebase (dispatch @cursor-explorer or @explore).
+- Do **not** write or edit files (dispatch @cursor-general or @executor).
+- Do **not** run bash for task execution (subagents do that).
+- Do **not** do token-heavy analysis locally (use subagents).
 
 ## Integration
 
-- **worker-selection** — choose worker CLI before any dispatch.
-- **sequential-task-runner** — when to spawn @sequencer then @executor.
-- **docs** — CLI routing (explore, general, executor, validator, code-reviewer, etc.): docs/cli-claude-code.md, docs/cli-cursor-agent.md, docs/worker-selection-guide.md.
+- **sequential-task-runner** — when to spawn @sequencer then @cursor-general / @executor.
+- **cursor-agent** skill — how to use the cursor_agent tool (used by cursor-explorer, cursor-general, cursor-reviewer).
