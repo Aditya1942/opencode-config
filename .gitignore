@@ -13,6 +13,7 @@ antigravity-signature-cache.json
 
 # Antigravity logs
 antigravity-logs/
+logs/
 
 # Superpowers (separate git repo, managed independently)
 superpowers/

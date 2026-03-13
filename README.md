@@ -1,6 +1,6 @@
 # OpenCode Config — Superpowers + Antigravity
 
-A production-ready [OpenCode.ai](https://opencode.ai) configuration with the [Superpowers](https://github.com/obra/superpowers) skill framework, multi-tier subagent orchestration, and Antigravity model providers.
+A production-ready [OpenCode.ai](https://opencode.ai) configuration with the [Superpowers](https://github.com/obra/superpowers) skill framework, Claude Code MCP specialization, and Antigravity model providers.
 
 ---
 
@@ -28,32 +28,45 @@ The agent will fetch the installation document and execute every step to set up 
 
 ### Agent Architecture
 
-A multi-agent system with a token-efficient orchestrator conductor:
+Primary agents route work through subagents or do it directly using tools. Subagents sequencer, executor, explore, architect, and code-reviewer use opencode tools (Read, Write, Edit, Bash). Cursor-native subagents cursor-explorer, cursor-general, and cursor-reviewer delegate all work to the cursor_agent tool (Cursor CLI).
 
 | Agent | Model | Mode | Role |
 |-------|-------|------|------|
-| `build` (primary) | User-selected | build/plan | Default agent, routes complex tasks to orchestrator |
-| `orchestrator` | User-selected | build/plan | Token-efficient conductor — PURE DISPATCHER (never does work directly) |
-| `code-reviewer` | GLM 4.7 | subagent | Post-implementation review |
+| `build` (primary) | User-selected | primary | Default agent; for big/multi-step spawns @sequencer then @executor; for small/single-step does work directly using tools |
+| `plan` | User-selected | primary | Planning only; must spawn @ultron for plan (per-step skills), then optional validation via executor or directly |
+| `orchestrator` | User-selected | primary | PURE dispatcher: routes to @explore, @sequencer then @executor, or delegate; never does task work directly |
+| `sequencer` | Claude Sonnet | subagent | Big task → tools → ordered plan; spawn first for multi-step work |
+| `executor` | Claude Haiku | subagent | Takes plan → tools → execute steps sequentially (validate + review per step); spawn after sequencer |
+| `explore` | Claude Haiku | subagent | Read-only codebase summary using tools; use for mapping or onboarding |
+| `ultron` | Claude Sonnet | subagent | Planning sub-agent (planner merged): skill-chooser per step; phases, testing, risks; no execution |
+| `architect` | Claude Sonnet | subagent | Architecture specialist: system design, scalability, trade-offs, ADRs; for features or large refactors |
+| `code-reviewer` | Claude Sonnet | subagent | Code review: quality, security, maintainability; use after code changes before claiming done |
+| `cursor-explorer` | Claude Sonnet | subagent | Read-only exploration + summarization via cursor_agent (plan/ask); Cursor-native alternative to @explore |
+| `cursor-general` | Claude Sonnet | subagent | Execution workhorse via cursor_agent (agent mode): implementation, coding tasks, plan execution |
+| `cursor-reviewer` | Claude Sonnet | subagent | Code review via cursor_agent (ask/plan): quality, security, maintainability; read-only; use after code changes |
 
-The `orchestrator` runs a mandatory 6-step workflow: (1) dispatch @metis for intent gate, (2) dispatch @prometheus-lite for planning, (3) dispatch @momus for plan review + user confirmation, (4) dispatch parallel execution via @executor/@explore/@librarian/@transform, (5) dispatch @validator + @code-reviewer for verification, (6) dispatch commit. **Orchestrator is a PURE DISPATCHER — it never does work directly.** See the `team-agents` skill for the full architecture spec.
-
-### 91+ Skills
+### 97 Skills
 
 **My Skills** (`my-skills/`):
-A consolidated collection of 91 skills for AI agents covering frontend, backend, code review, documentation updates, testing, and more (e.g. `brainstorming`, `plan-writing`, `clean-code`, `frontend-design`, `react-best-practices`, etc.).
+A consolidated collection of 95+ skills for AI agents covering frontend, backend, code review, documentation, planning, and more (e.g. `brainstorming`, `plan-writing`, `ultron-planning`, `clean-code`, `frontend-design`, `react-best-practices`).
 
-**Orchestration & Config:**
-team-agents, update-config
+**Config:**
+update-config
 
 ### Custom Commands
 
 | Command | Purpose |
 |---------|---------|
+| `/which-skill` | Auto-detect best skill(s) for current task |
 | `/brainstorm` | Invoke brainstorming skill before creative work |
 | `/write-plan` | Create detailed implementation plan |
 | `/execute-plan` | Execute plan in batches with review checkpoints |
-| `/antigravity-quota` | Check Antigravity API quota for all accounts |
+| `/readme-first` | README-first workflow; keep README in sync after code changes |
+| `/init-readme` | Initialize or refresh README.md for a package/module |
+| `/remember-this` | Save compact memory (decisions, gotchas) for current module |
+| `/recall` | Retrieve stored memory for a module or topic |
+| `/ultron` | Get plan with per-step skills (spawns @ultron) |
+| `/antigravity-quota` | Check Antigravity API quota (plugin-provided) |
 
 ---
 
@@ -63,60 +76,54 @@ team-agents, update-config
 
 | Agent | Model | Mode | Role |
 |-------|-------|------|------|
-| **build** | User-selected | primary | Default agent; delegates complex tasks to orchestrator |
-| **orchestrator** | User-selected | primary | Token-efficient conductor — PURE DISPATCHER (never does work directly) |
-| **explore** | Claude Haiku 4.5 | subagent | Codebase mapping, contextual search, LSP/ast_grep/ripgrep (read-only) |
-| **explore-fallback** | MiniMax M2.5 Free | subagent (hidden) | Fallback when explore fails |
-| **general** | GLM 4.7 | subagent | Code comprehension, multi-file analysis, dependency maps |
-| **librarian** | GLM 4.7 | subagent | Research: docs, multi-repo, GitHub examples, library best practices |
-| **librarian-fallback** | Claude Haiku 4.5 | subagent (hidden) | Fallback when librarian fails |
-| **transform** | GLM 4.7 | subagent (hidden) | Renames, formatting, simple refactors (no logic changes) |
-| **validator** | GPT-5 Nano | subagent (hidden) | Output validation, format checks, hallucination detection |
-| **executor** | GLM 4.7 | subagent | Implements microtasks from orchestrator; full tool access |
-| **executor-fallback** | Claude Haiku 4.5 | subagent (hidden) | Fallback when executor fails |
-| **code-reviewer** | GLM 4.7 | subagent | Security-first code review: quality, React/Next.js, Node.js patterns |
-| **architect** | GLM 4.7 | subagent | System design, ADRs, trade-off analysis (read-only) |
-| **build-error-resolver** | GLM 4.7 | subagent | Build/type error fixer — minimal diffs, no refactoring |
-| **refactor-cleaner** | GLM 4.7 | subagent | Dead code cleanup, duplicate elimination, dependency cleanup |
-| **doc-updater** | Claude Haiku 4.5 | subagent | Documentation and codemap generation/maintenance |
-| **tdd-guide** | GLM 4.7 | subagent | TDD specialist — Red-Green-Refactor, 80%+ coverage |
-| **prometheus-lite** | Claude Haiku 4.5 | subagent | Strategic planner; interview → Metis → plan in `.agents/plans/` (no code) |
-| **metis** | GLM 4.7 | subagent (hidden) | Pre-planning consultant; intent classification, gap analysis (read-only) |
-| **momus** | GLM 4.7 | subagent (hidden) | Plan reviewer; executable plans, valid references (read-only) |
-
-Routing details: load the **team-agents** skill.
+| **build** | User-selected | primary | Default agent; for big tasks spawn @sequencer then @executor; else do work directly using tools |
+| **plan** | User-selected | primary | Planning only; must spawn @ultron for plan (per-step skills), then optional validation via executor or directly |
+| **orchestrator** | User-selected | primary | PURE dispatcher: @explore, @sequencer then @executor, or delegate |
+| **sequencer** | Claude Sonnet | subagent | Big task → tools → ordered plan |
+| **executor** | Claude Haiku | subagent | Executes plan steps using tools (validate + review per step) |
+| **explore** | Claude Haiku | subagent | Read-only codebase summary using tools |
+| **ultron** | Claude Sonnet | subagent | Planning sub-agent (planner merged): skill-chooser per step; structured plan, no execution |
+| **architect** | Claude Sonnet | subagent | Architecture specialist: system design, scalability, ADRs |
+| **code-reviewer** | Claude Sonnet | subagent | Code review: quality, security, maintainability; use after code changes |
+| **cursor-explorer** | Claude Sonnet | subagent | Read-only exploration, summarization, brainstorming via cursor_agent (plan/ask); Cursor-native @explore |
+| **cursor-general** | Claude Sonnet | subagent | Execution workhorse via cursor_agent (agent mode): implementation, coding, plan execution |
+| **cursor-reviewer** | Claude Sonnet | subagent | Code review via cursor_agent (ask/plan): quality, security, maintainability; read-only |
 
 ### Commands (slash)
 
 | Command | Purpose |
 |---------|---------|
+| `/which-skill` | Auto-detect best skill(s) for current task |
 | `/brainstorm` | Invoke brainstorming skill before creative work |
 | `/write-plan` | Create implementation plan with tasks |
 | `/execute-plan` | Execute plan in batches with checkpoints |
-| `/antigravity-quota` | Check Antigravity API quota (plugin) |
+| `/readme-first` | README-first workflow; keep README in sync after changes |
+| `/init-readme` | Initialize or refresh README.md for package/module |
+| `/remember-this` | Save compact memory for current module |
+| `/recall` | Retrieve stored memory for module or topic |
+| `/ultron` | Plan with per-step skills (spawns @ultron) |
+| `/antigravity-quota` | Check Antigravity API quota (plugin-provided) |
 
 ### Skills
 
 | Collection | Skills |
 |------------|--------|
-| **my-skills** | Consolidated directory with 91 varied skills (e.g. `brainstorming`, `plan-writing`, `react-best-practices`) |
-| **Orchestration** | team-agents |
+| **my-skills** | Consolidated directory with 95+ skills (e.g. `brainstorming`, `plan-writing`, `ultron-planning`, `react-best-practices`) |
 | **Config** | update-config |
 
 Use the `skill` tool to load skills; never read `SKILL.md` directly.
 
-### MCP Servers (8)
+### MCP Servers (7)
 
 | Server | Category | Description | Key tools / features |
 |--------|----------|-------------|----------------------|
 | **memory** | Memory / Context | Persistent knowledge graph | entities, observations, cross-session memory |
 | **sequential-thinking** | Reasoning | Step-by-step reasoning | thought steps, revision, branching; optional logging |
 | **time** | Utilities | Time data | current time, timezone conversion |
-| **ast-grep** | Code Search | Structural code search (AST) | find_code, find_code_by_rule, dump_syntax_tree; used by Explore |
-| **context7** | Web / Search | Library documentation | resolve-library-id, get-library-docs; used by Librarian |
-| **grep-app** | Web / Search | GitHub code search | searchCode, grep_query; used by Librarian |
-| **web-search** | Web / Search | Free web search + URL fetching | search_web, fetch_url; no API key; used by Librarian |
-| **cloudflare** | Infrastructure | Cloudflare management | Workers, KV, R2, D1, Durable Objects, Queues, AI, DNS |
+| **ast-grep** | Code Search | Structural code search (AST) | find_code, find_code_by_rule, dump_syntax_tree |
+| **context7** | Web / Search | Library documentation | resolve-library-id, get-library-docs |
+| **grep-app** | Web / Search | GitHub code search | searchCode, grep_query |
+| **web-search** | Web / Search | Free web search + URL fetching | search_web, fetch_url; no API key |
 
 MCP config: `opencode.json`.
 
@@ -124,6 +131,7 @@ MCP config: `opencode.json`.
 
 | Plugin | Purpose |
 |--------|---------|
+| `my-skills.js` | Bootstrap: skill tool (loads SKILL.md from skills) |
 | `custom-hooks.js` | Context window monitor, tool output truncator, model fallback, preemptive compaction, rules injector |
 
 ---
@@ -139,7 +147,15 @@ git clone https://github.com/Aditya1942/opencode-config.git ~/.config/opencode
 # 2. Install dependencies
 cd ~/.config/opencode && bun install
 
-# 3. Restart OpenCode
+# 3. Install the MCP bridge globally and load the launch agent
+npm install -g --prefix ~/.local mcp-proxy
+mkdir -p ~/Library/LaunchAgents ~/.config/opencode/logs
+ln -sf ~/.config/opencode/mcp/claude-code-mcp.plist ~/Library/LaunchAgents/io.aditya.opencode.claude-code-mcp.plist
+launchctl bootout "gui/$(id -u)" ~/Library/LaunchAgents/io.aditya.opencode.claude-code-mcp.plist 2>/dev/null || true
+launchctl bootstrap "gui/$(id -u)" ~/Library/LaunchAgents/io.aditya.opencode.claude-code-mcp.plist
+launchctl kickstart -k "gui/$(id -u)/io.aditya.opencode.claude-code-mcp"
+
+# 4. Restart OpenCode
 ```
 
 See [.opencode/INSTALL.md](.opencode/INSTALL.md) for the full detailed guide with verification steps and troubleshooting.
@@ -165,16 +181,16 @@ Or inside OpenCode, run `/update-config`.
 ├── AGENTS.md                   # Agent instructions and coding standards
 ├── package.json                # Dependencies (@opencode-ai/plugin)
 ├── plugins/
+│   ├── my-skills.js            # Bootstrap: skill tool
 │   ├── custom-hooks.js         # Combined hooks plugin
 │   └── hooks/                  # Individual hook implementations
 ├── skills/
-│   ├── my-skills/              # Consolidated skills directory (91+ skills)
-│   ├── team-agents/            # Multi-agent routing skill
+│   ├── my-skills/              # Consolidated skills directory (95+ skills)
 │   └── update-config/          # Update config skill
 ├── .agents/
-│   ├── plans/                  # Implementation plans (generated by prometheus-lite)
+│   ├── plans/                  # Implementation plans
 │   └── drafts/                 # Draft plans and interview notes
-├── docs/                       # Guides and design docs
+├── docs/                       # Guides (ultron-design, config-change-checklist, etc.)
 └── .opencode/
     └── INSTALL.md              # Agent-executable installation guide
 ```
@@ -187,7 +203,6 @@ Or inside OpenCode, run `/update-config`.
 - Git
 - Bun (or Node.js)
 - Antigravity auth (optional — for Antigravity model providers)
-
 ---
 
 ## License

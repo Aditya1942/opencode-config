@@ -1,6 +1,6 @@
 /**
  * Custom Hooks Plugin for OpenCode
- * 
+ *
  * Combines standalone implementations of oh-my-opencode hooks:
  * - context-window-monitor: Warns at 70% context usage
  * - tool-output-truncator: Truncates large outputs

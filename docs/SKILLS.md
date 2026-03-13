@@ -1,13 +1,13 @@
 # Skills System Codemap
 
 **Last Updated:** 2026-03-06  
-**Scope:** 93 skills organized across 3 collections  
+**Scope:** 96+ skills organized across 2 collections (95+ in my-skills, update-config)  
 
 ---
 
 ## 🎓 Skills Overview
 
-The OpenCode skills system provides 93 domain-specific, reusable instruction sets organized into 3 collections with a powerful skill-chooser routing system.
+The OpenCode skills system provides 96+ domain-specific, reusable instruction sets organized into 2 collections with a powerful skill-chooser routing system.
 
 ### Core Principle
 **Iron Law:** If a skill might apply (even 1% chance), invoke it first.  
@@ -19,15 +19,12 @@ Never read SKILL.md files directly — always use the **skill tool** or **skill-
 
 ```
 skills/
-├── my-skills/               (85 skills - primary domain collection)
+├── my-skills/               (95+ skills - primary domain collection)
 │   ├── frontend-design/SKILL.md
 │   ├── react-patterns/SKILL.md
 │   ├── typescript-expert/SKILL.md
-│   ├── ... (82 more)
+│   ├── ... (92+ more)
 │   └── skill-chooser/SKILL.md (router for all skills)
-│
-├── team-agents/             (Multi-agent orchestration)
-│   └── SKILL.md
 │
 └── update-config/           (Configuration updates)
     └── SKILL.md
@@ -92,7 +89,7 @@ skills/
 | **javascript-testing-patterns** | Jest, Vitest, Testing Library | JS/TS testing strategy |
 | **python-testing-patterns** | pytest, fixtures, mocking | Python testing strategy |
 | **testing-patterns** | Jest testing, factories, TDD | Unit testing workflow |
-| **test-fixed** | Fix failing tests systematically | When tests fail |
+| **test-fixing** | Fix failing tests systematically | When tests fail |
 | **testing-qa** | Unit, integration, E2E testing | QA strategy |
 | **tdd-workflow** | RED-GREEN-REFACTOR cycles | Test-first development |
 | **unit-testing-test-generate** | Generate comprehensive tests | Test generation |
@@ -172,7 +169,7 @@ User: "How do I optimize React performance?"
     ↓
 [skill-chooser analyzes request]
     ├─ Extracts keywords: React, performance, optimization
-    ├─ Scores 93 skills by keyword match
+    ├─ Scores 96+ skills by keyword match
     ├─ Returns top recommendations: react-best-practices, web-performance-optimization
     │
     ↓
@@ -298,8 +295,8 @@ listSkills()
 
 **Loading Pattern:**
 1. Extract skill name from user request
-2. Search 3 collections in priority order: my-skills → team-agents → update-config
-3. Match subdir pattern (my-skills) or flat pattern (team-agents, update-config)
+2. Search 2 collections in priority order: my-skills → update-config
+3. Match subdir pattern (my-skills) or flat pattern (update-config)
 4. Return content from SKILL.md
 5. Agent executes instructions in returned content
 
@@ -313,7 +310,7 @@ listSkills()
 
 **Algorithm:**
 ```
-1. Load skill index (~85 skills with descriptions)
+1. Load skill index (~95+ skills with descriptions)
 2. Parse user request for intent signals
 3. Score each skill by keyword match
 4. Prefer specific skills over general ones
@@ -326,15 +323,6 @@ listSkills()
 1. react-patterns - For component design patterns
    → Read: /Users/aditya/.config/opencode/skills/my-skills/react-patterns/SKILL.md
 ```
-
-### team-agents (Subagent Routing)
-
-**Purpose:** Multi-agent orchestration patterns
-
-**Content:**
-- Subagent delegation patterns
-- Fallback chain management
-- Parallel task coordination
 
 ### update-config (Configuration Updates)
 
@@ -400,7 +388,7 @@ Skills don't have explicit versions. Breaking changes:
 | Code Quality & Patterns | 15 | 16.1% | ✅ Extensive |
 | Documentation & Tools | 10 | 10.8% | ✅ Complete |
 | Advanced Concepts | 13 | 14.0% | ✅ Growing |
-| **TOTAL** | **93** | **100%** | **✅ Comprehensive** |
+| **TOTAL** | **96+** | **100%** | **✅ Comprehensive** |
 
 ---
 
@@ -465,9 +453,9 @@ Skills don't have explicit versions. Breaking changes:
 ## 📍 Skill Navigation
 
 ### Quick Links
-- **All skills:** `skills/my-skills/` (93 total)
+- **All skills:** `skills/my-skills/` (95+), plus update-config (96+ total in repo)
 - **Skill chooser:** `skills/my-skills/skill-chooser/SKILL.md`
-- **Orchestration:** `skills/team-agents/SKILL.md`
+- **Routing:** AGENTS.md
 - **Config updates:** `skills/update-config/SKILL.md`
 
 ### Useful Commands
@@ -488,6 +476,6 @@ Skills don't have explicit versions. Breaking changes:
 
 **Confidence Score:** 0.96  
 **Last Verified:** 2026-03-06  
-**Coverage:** All 93 skills documented, categories verified  
+**Coverage:** All 96+ skills documented, categories verified  
 **Freshness:** Auto-updated when SKILL.md files change
 
