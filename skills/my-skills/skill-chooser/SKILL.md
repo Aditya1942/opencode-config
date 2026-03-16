@@ -14,7 +14,7 @@ Read the compact skill index:
 /Users/aditya/.config/opencode/skills/my-skills/skill-chooser/skill_index.json
 ```
 
-This file contains ~85 skills organized into 8 categories, each with:
+This file contains 77 skills organized into 8 categories, each with:
 - `n`: skill name (maps to `/Users/aditya/.config/opencode/skills/my-skills/{n}/SKILL.md`)
 - `d`: one-line description
 - `k`: keyword array for matching

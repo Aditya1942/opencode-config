@@ -47,9 +47,8 @@ Run the following commands to update everything:
 After updating, verify these components are present:
 
 - **MCPs (7):** memory, sequential-thinking, time, ast-grep, context7, grep-app, web-search
-- **Agents (12):** build, plan, orchestrator, sequencer, executor, explore, ultron, architect, code-reviewer, cursor-explorer, cursor-general, cursor-reviewer
-- **Other skills:** update-config; my-skills includes ultron-planning (plan with per-step skills), cursor-agent (Cursor CLI delegation)
-- **Cursor-native subagents:** cursor-explorer (read-only exploration), cursor-general (execution workhorse), cursor-reviewer (code review) — all delegate to cursor_agent tool
+- **Agents (9):** build, plan, orchestrator, sequencer, executor, explore, ultron, architect, code-reviewer
+- **Other skills:** update-config; my-skills includes ultron-planning (plan with per-step skills)
 
 ## Output
 
