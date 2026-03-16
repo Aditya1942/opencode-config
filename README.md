@@ -28,7 +28,7 @@ The agent will fetch the installation document and execute every step to set up 
 
 ### Agent Architecture
 
-Primary agents route work through subagents or do it directly using tools. Subagents sequencer, executor, explore, architect, and code-reviewer use opencode tools (Read, Write, Edit, Bash). Cursor-native subagents cursor-explorer, cursor-general, and cursor-reviewer delegate all work to the cursor_agent tool (Cursor CLI).
+Primary agents route work through subagents or do it directly using tools. Subagents sequencer, executor, explore, architect, and code-reviewer use opencode tools (Read, Write, Edit, Bash).
 
 | Agent | Model | Mode | Role |
 |-------|-------|------|------|
@@ -41,9 +41,6 @@ Primary agents route work through subagents or do it directly using tools. Subag
 | `ultron` | Claude Sonnet | subagent | Planning sub-agent (planner merged): skill-chooser per step; phases, testing, risks; no execution |
 | `architect` | Claude Sonnet | subagent | Architecture specialist: system design, scalability, trade-offs, ADRs; for features or large refactors |
 | `code-reviewer` | Claude Sonnet | subagent | Code review: quality, security, maintainability; use after code changes before claiming done |
-| `cursor-explorer` | Claude Sonnet | subagent | Read-only exploration + summarization via cursor_agent (plan/ask); Cursor-native alternative to @explore |
-| `cursor-general` | Claude Sonnet | subagent | Execution workhorse via cursor_agent (agent mode): implementation, coding tasks, plan execution |
-| `cursor-reviewer` | Claude Sonnet | subagent | Code review via cursor_agent (ask/plan): quality, security, maintainability; read-only; use after code changes |
 
 ### 97 Skills
 
@@ -85,9 +82,6 @@ update-config
 | **ultron** | Claude Sonnet | subagent | Planning sub-agent (planner merged): skill-chooser per step; structured plan, no execution |
 | **architect** | Claude Sonnet | subagent | Architecture specialist: system design, scalability, ADRs |
 | **code-reviewer** | Claude Sonnet | subagent | Code review: quality, security, maintainability; use after code changes |
-| **cursor-explorer** | Claude Sonnet | subagent | Read-only exploration, summarization, brainstorming via cursor_agent (plan/ask); Cursor-native @explore |
-| **cursor-general** | Claude Sonnet | subagent | Execution workhorse via cursor_agent (agent mode): implementation, coding, plan execution |
-| **cursor-reviewer** | Claude Sonnet | subagent | Code review via cursor_agent (ask/plan): quality, security, maintainability; read-only |
 
 ### Commands (slash)
 

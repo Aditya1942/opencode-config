@@ -1,6 +1,6 @@
 ---
 name: workflow-orchestration
-description: "Orchestrator's end-to-end workflow: plan (@ultron) → sequence (@sequencer + sequential-thinking) → execute (@cursor-general/@executor) → review (@cursor-reviewer/@code-reviewer). Pure dispatch — no direct work."
+description: "Orchestrator's end-to-end workflow: plan (@ultron) → sequence (@sequencer + sequential-thinking) → execute (@executor) → review (@code-reviewer). Pure dispatch — no direct work."
 ---
 
 # Workflow Orchestration
@@ -25,25 +25,13 @@ Spawn **@sequencer** with Ultron's plan (or the user's task if Phase 1 was skipp
 
 > For single-step tasks, skip directly to Phase 3.
 
-### Phase 3 — Execute
+### Phase 3 — Execute (via @executor)
 
-Pick one execution path:
-
-| Path | Subagent | When |
-|------|----------|------|
-| **Cursor-native** (preferred) | `@cursor-general` | `cursor_agent` tool available |
-| **OpenCode tools** (fallback) | `@executor` | `cursor_agent` unavailable |
-
-Pass the sequencer's ordered plan. The execution agent works step-by-step with validation after each step.
+Spawn **@executor** with the sequencer's ordered plan. The executor works step-by-step using opencode tools (Read, Write, Edit, Bash) with validation after each step.
 
 ### Phase 4 — Code Review (mandatory gate)
 
-Spawn a review subagent **before marking work done**:
-
-| Path | Subagent |
-|------|----------|
-| **Cursor-native** | `@cursor-reviewer` |
-| **OpenCode tools** | `@code-reviewer` |
+Spawn **@code-reviewer** before marking work done.
 
 Review checks: Security (CRITICAL) → Code quality (HIGH) → Patterns (HIGH) → Performance (MEDIUM).
 
@@ -64,7 +52,7 @@ Verdict: **Approve** (no CRITICAL/HIGH) · **Block** (any CRITICAL) · **Warning
 | Big / multi-step | Plan → Sequence → Execute → Review → Close |
 | Medium / clear scope | Sequence → Execute → Review → Close |
 | Small / single-step | Execute → Review → Close |
-| Exploration / summary | @cursor-explorer or @explore (read-only) |
+| Exploration / summary | @explore (read-only) |
 | Planning-only | @ultron only; present plan, do not execute |
 
 ## Iron Rules
@@ -79,5 +67,4 @@ Verdict: **Approve** (no CRITICAL/HIGH) · **Block** (any CRITICAL) · **Warning
 
 - `subagent-driven-development` — dispatch discipline
 - `sequential-task-runner` — sequencer → executor flow
-- `cursor-agent` — how cursor subagents work
 - `code-review-excellence` — review standards

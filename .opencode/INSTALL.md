@@ -116,7 +116,7 @@ After restart, verify the installation by asking the user to confirm these work:
 
 1. **Skills loaded**: Check the skill tool to list available skills — should show `my-skills/` and `update-config` skills.
 2. **Commands available**: Try `/brainstorm` — should invoke the brainstorming skill.
-3. **Agents configured**: Check that `build`, `plan`, `orchestrator`, `sequencer`, `executor`, `explore`, `ultron`, `architect`, `code-reviewer`, `cursor-explorer`, `cursor-general`, and `cursor-reviewer` are visible in the agent hierarchy; subagents do planning and execution using tools; ultron is the planning sub-agent (planner merged: skill-chooser per step); architect and code-reviewer are specialist subagents; cursor-explorer/cursor-general/cursor-reviewer are Cursor-native subagents that delegate work to the cursor_agent tool (requires Cursor CLI: `agent --version` and `agent login`).
+3. **Agents configured**: Check that `build`, `plan`, `orchestrator`, `sequencer`, `executor`, `explore`, `ultron`, `architect`, and `code-reviewer` are visible in the agent hierarchy; subagents do planning and execution using opencode tools; ultron is the planning sub-agent (planner merged: skill-chooser per step); architect and code-reviewer are specialist subagents.
 4. **MCP servers (7) connected**: Verify MCP tools like `ast-grep_find_code`, `context7_resolve-library-id`, and `web-search_search_web` are available.
 
 ---
@@ -172,7 +172,7 @@ Use the update-config skill to update config.
 
 ### Agents Not Working
 
-1. Verify `opencode.json` has the `agent` section with `build`, `plan`, `orchestrator`, `sequencer`, `executor`, `explore`, `ultron`, `architect`, `code-reviewer`, `cursor-explorer`, `cursor-general`, and `cursor-reviewer` defined; cursor-* agents require Cursor CLI (`agent --version`) and authentication (`agent login` or `CURSOR_API_KEY` env var)
+1. Verify `opencode.json` has the `agent` section with `build`, `plan`, `orchestrator`, `sequencer`, `executor`, `explore`, `ultron`, `architect`, and `code-reviewer` defined
 2. Antigravity models require auth — ensure `antigravity-accounts.json` is configured
 
 ### MCP Servers Not Connecting

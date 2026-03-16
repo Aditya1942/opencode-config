@@ -1,18 +1,18 @@
 ---
 name: ultron-planning
-description: When to spawn the Ultron planning sub-agent for a plan with per-step skills. Plan only; execution via sequencer/executor.
+description: When to spawn the Ultron planning sub-agent for a structured TDD plan with per-step skills. Plan only; execution via executor or manually.
 ---
 
 # Ultron Planning — When to Use
 
-Use this skill when you need a **structured plan** that includes **per-step skill recommendations**. Ultron does not execute; it only plans and assigns skills.
+Use this skill when you need a **structured TDD plan** that includes **per-step skill recommendations**, bite-sized tasks (2–5 min each), and a saved plan file. Ultron does not execute; it only plans and assigns skills.
 
 ## When to Use Ultron
 
-- User asks for a "plan with skills per step"
+- User asks for a plan or "plan with skills per step"
 - Task is multi-phase and you want each phase to have explicit skill(s)
-- You will hand the plan to @sequencer / @executor
-- User says "use Ultron" or "ultron plan" or "/ultron"
+- You will hand the plan to @executor for execution
+- User says "use Ultron" or "ultron plan" or `/ultron`
 
 ## When Not to Use
 
@@ -21,24 +21,23 @@ Use this skill when you need a **structured plan** that includes **per-step skil
 
 ## Checklist
 
-1. **Spawn @ultron** with the task (or use **/ultron** with task in context)
-2. Optionally spawn **@cursor-explorer** (mode=plan) first for deep architecture context to pass to Ultron
-3. Ultron will: read task → skill-chooser (overall + per step) → output structured plan
-4. **Present the plan** to the user; do not execute unless the user asks
-5. If user wants execution: hand plan to @sequencer then @cursor-general (Cursor-native) or @executor (opencode tools)
+1. **Spawn @ultron** with the task (or use `/ultron` with task in context)
+2. Optionally spawn **@explore** first for deep architecture context to pass to Ultron
+3. Ultron will: read task → skill-chooser (overall + per step) → write bite-sized TDD plan → save to `docs/plans/`
+4. **Present the plan** to the user; do not execute unless the user explicitly requests Subagent-Driven mode
+5. If user wants execution: Ultron dispatches @executor per task + @code-reviewer for each task sequentially
 
 ## Output You Get
 
-A plan with for each step:
+A plan document saved to `docs/plans/YYYY-MM-DD-<feature-name>.md` with:
 
-- **Description** — what to do
-- **Skills** — from skill-chooser (1–3 per step)
-- **Verification** — how to check the step is done
-
-Plus assumptions and risks.
+- **Header** — Goal, Architecture, Tech Stack
+- **Tasks** — each with Files (create/modify/test), Skills, bite-sized TDD Steps (write test → fail → implement → pass → commit), Verification, Dependencies, Risk
+- **Testing Strategy, Risks & Mitigations, Success Criteria**
+- **Execution handoff** — Subagent-Driven (this session) or Manual/Parallel Session
 
 ## Reference
 
 - **Design doc:** docs/ultron-design.md
 - **Agent config:** opencode.json → agent "ultron"
-- **Routing:** docs/ultron-design.md, AGENTS.md → Planning Sub-Agent (Ultron)
+- **Slash command:** `/ultron`
