@@ -6,7 +6,7 @@ This document is designed for an AI agent to follow step-by-step to install this
 
 - **OpenCode configuration** with multi-model Antigravity provider support (Claude, Gemini)
 - **My Skills collection** — 95+ consolidated workflow and domain skills (TDD, debugging, planning, React, etc.)
-- **Custom slash commands** — `/which-skill`, `/brainstorm`, `/write-plan`, `/execute-plan`, `/readme-first`, `/init-readme`, `/remember-this`, `/recall`, `/ultron`, `/antigravity-quota` (plugin)
+- **Custom slash commands** — `/brainstorm`, `/write-plan`, `/execute-plan`, `/readme-first`, `/init-readme`, `/remember-this`, `/recall`, `/ultron`, `/antigravity-quota` (plugin)
 - **MCP servers (7)** — memory, sequential-thinking, time, ast-grep, context7, grep-app, web-search
 
 ---
@@ -116,7 +116,7 @@ After restart, verify the installation by asking the user to confirm these work:
 
 1. **Skills loaded**: Check the skill tool to list available skills — should show `my-skills/` and `update-config` skills.
 2. **Commands available**: Try `/brainstorm` — should invoke the brainstorming skill.
-3. **Agents configured**: Check that `build`, `plan`, `orchestrator`, `sequencer`, `executor`, `explore`, `ultron`, `architect`, and `code-reviewer` are visible in the agent hierarchy; subagents do planning and execution using opencode tools; ultron is the planning sub-agent (planner merged: skill-chooser per step); architect and code-reviewer are specialist subagents.
+3. **Agents configured**: Check that `build`, `plan`, `orchestrator`, `sequencer`, `executor`, `explore`, `ultron`, `architect`, and `code-reviewer` are visible in the agent hierarchy; subagents do planning and execution using opencode tools; ultron is the planning sub-agent (planner merged: skill selection per step); architect and code-reviewer are specialist subagents.
 4. **MCP servers (7) connected**: Verify MCP tools like `ast-grep_find_code`, `context7_resolve-library-id`, and `web-search_search_web` are available.
 
 ---

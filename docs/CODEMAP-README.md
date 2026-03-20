@@ -22,7 +22,7 @@ This folder holds architecture and reference docs for the OpenCode config repo. 
 | **[../AGENTS.md](../AGENTS.md)** | **Primary.** Agent hierarchy, slash commands, skills table, code style, anti-patterns |
 | **[INDEX.md](INDEX.md)** | Architecture overview: 7 agents, 7 MCPs, entry points, diagram |
 | **[AGENTS.md](AGENTS.md)** | Agent deep dive: 7 agents, orchestrator rules |
-| **[SKILLS.md](SKILLS.md)** | Skills system: 97 skills, categories, skill-chooser |
+| **[SKILLS.md](SKILLS.md)** | Skills system: 97 skills, categories, selection workflow |
 | **[ultron-design.md](ultron-design.md)** | Ultron planning sub-agent: when to spawn, output format |
 | **[config-change-checklist.md](config-change-checklist.md)** | Files to update when changing agents, commands, MCPs, skills, plugins |
 

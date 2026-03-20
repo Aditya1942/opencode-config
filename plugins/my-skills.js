@@ -5,7 +5,7 @@
  *
  * Usage (in prompts/commands):
  *   Invoke the my-skills:brainstorming skill
- *   Load the skill-chooser skill from my-skills
+ *   Use the `skill` tool to load skills from any configured collection
  */
 
 import { tool } from '@opencode-ai/plugin'
@@ -19,7 +19,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const SKILLS_ROOT = join(__dirname, '..', 'skills')
 
 // Collections to search, in priority order
-const COLLECTIONS = ['my-skills', 'update-config']
+// Note: skills may be split across collections (e.g. agent-skills/react-skills) as well as my-skills.
+const COLLECTIONS = ['my-skills', 'agent-skills', 'react-skills', 'update-config']
 
 /**
  * Resolve a skill name to its SKILL.md path.
@@ -113,7 +114,7 @@ export const MySkillsPlugin = async (_ctx) => {
       skill: tool({
         description:
           'Load a skill by name to get detailed instructions and workflows. ' +
-          'Skills are stored in skills/my-skills/ as SKILL.md files. ' +
+          'Skills live under skills/<collection>/<skill-name>/SKILL.md (plus update-config/SKILL.md). ' +
           'Use format "skill-name" or "collection:skill-name". ' +
           'Use name="list" to see all available skills.',
 
@@ -131,7 +132,7 @@ export const MySkillsPlugin = async (_ctx) => {
           if (name === 'list') {
             const skills = listSkills()
             if (skills.length === 0) {
-              return 'No skills found. Check that skills/my-skills/ directory exists.'
+              return 'No skills found. Check that skills/<collection>/ directories exist.'
             }
             const lines = skills.map(s => `- ${s.collection}:${s.name}`)
             return `Available skills (${skills.length}):\n${lines.join('\n')}`

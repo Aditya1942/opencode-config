@@ -70,7 +70,7 @@ OpenCode is a **configuration-only** repo: agents, skills, plugins, MCP servers,
 | **sequencer** | Claude Sonnet | subagent | Big task → tools → ordered plan; spawn first |
 | **executor** | Claude Haiku | subagent | Plan → tools → execute steps (validate + review per step); spawn after sequencer |
 | **explore** | Claude Haiku | subagent | Read-only codebase summary using tools |
-| **ultron** | Claude Sonnet | subagent | Planning: skill-chooser per step; structured plan only; no execution |
+| **ultron** | Claude Sonnet | subagent | Planning: skill selection per step; structured plan only; no execution |
 
 Subagents do planning and execution using tools (Read, Write, Edit, Bash).
 

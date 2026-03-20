@@ -38,7 +38,7 @@ Primary agents route work through subagents or do it directly using tools. Subag
 | `sequencer` | Claude Sonnet | subagent | Big task → tools → ordered plan; spawn first for multi-step work |
 | `executor` | Claude Haiku | subagent | Takes plan → tools → execute steps sequentially (validate + review per step); spawn after sequencer |
 | `explore` | Claude Haiku | subagent | Read-only codebase summary using tools; use for mapping or onboarding |
-| `ultron` | Claude Sonnet | subagent | Planning sub-agent (planner merged): skill-chooser per step; phases, testing, risks; no execution |
+| `ultron` | Claude Sonnet | subagent | Planning sub-agent (planner merged): skill selection per step; phases, testing, risks; no execution |
 | `architect` | Claude Sonnet | subagent | Architecture specialist: system design, scalability, trade-offs, ADRs; for features or large refactors |
 | `code-reviewer` | Claude Sonnet | subagent | Code review: quality, security, maintainability; use after code changes before claiming done |
 
@@ -54,7 +54,6 @@ update-config
 
 | Command | Purpose |
 |---------|---------|
-| `/which-skill` | Auto-detect best skill(s) for current task |
 | `/brainstorm` | Invoke brainstorming skill before creative work |
 | `/write-plan` | Create detailed implementation plan |
 | `/execute-plan` | Execute plan in batches with review checkpoints |
@@ -79,7 +78,7 @@ update-config
 | **sequencer** | Claude Sonnet | subagent | Big task → tools → ordered plan |
 | **executor** | Claude Haiku | subagent | Executes plan steps using tools (validate + review per step) |
 | **explore** | Claude Haiku | subagent | Read-only codebase summary using tools |
-| **ultron** | Claude Sonnet | subagent | Planning sub-agent (planner merged): skill-chooser per step; structured plan, no execution |
+| **ultron** | Claude Sonnet | subagent | Planning sub-agent (planner merged): skill selection per step; structured plan, no execution |
 | **architect** | Claude Sonnet | subagent | Architecture specialist: system design, scalability, ADRs |
 | **code-reviewer** | Claude Sonnet | subagent | Code review: quality, security, maintainability; use after code changes |
 
@@ -87,7 +86,6 @@ update-config
 
 | Command | Purpose |
 |---------|---------|
-| `/which-skill` | Auto-detect best skill(s) for current task |
 | `/brainstorm` | Invoke brainstorming skill before creative work |
 | `/write-plan` | Create implementation plan with tasks |
 | `/execute-plan` | Execute plan in batches with checkpoints |

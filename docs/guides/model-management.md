@@ -24,7 +24,7 @@ How to replace, add, or reconfigure models and agents in the OpenCode config. **
 | `sequencer` | Claude Sonnet | subagent | Big task → tools → ordered plan |
 | `executor` | Claude Haiku | subagent | Plan → tools → execute steps (validate + review per step) |
 | `explore` | Claude Haiku | subagent | Read-only codebase summary using tools |
-| `ultron` | Claude Sonnet | subagent | Planning: skill-chooser per step; structured plan only |
+| `ultron` | Claude Sonnet | subagent | Planning: skill selection per step; structured plan only |
 
 ---
 

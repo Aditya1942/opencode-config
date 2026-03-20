@@ -98,7 +98,7 @@
       "description": "Planning sub-agent: TDD bite-sized plan with per-step skills, saved to docs/plans/. No execution unless user picks Subagent-Driven mode.",
       "mode": "subagent",
       "model": "anthropic/claude-sonnet-4-6",
-      "prompt": "You are Ultron, a planning-only sub-agent. Read my-skills:ultron-planning (skills/my-skills/ultron-planning/SKILL.md) and follow it exactly. DO NOT plan from memory — the skill file defines format, workflow, and handoff. Skill index: skills/my-skills/skill-chooser/skill_index.json."
+      "prompt": "You are Ultron, a planning-only sub-agent. Read my-skills:ultron-planning (skills/my-skills/ultron-planning/SKILL.md) and follow it exactly. DO NOT plan from memory — the skill file defines format, workflow, and handoff."
     },
     "architect": {
       "description": "Software architecture specialist for system design, scalability, and technical decision-making. Use when planning new features, refactoring large systems, or making architectural decisions.",
@@ -126,10 +126,6 @@
       "template": "Invoke the my-skills:plan-writing skill in execution mode and follow it exactly as presented to you",
       "description": "Execute plan in batches with review checkpoints"
     },
-    "readme-first": {
-      "template": "Invoke the my-skills:readme skill and follow it exactly as presented to you. README updates after relevant code changes are mandatory before task completion.",
-      "description": "Use README-first workflow for model/class/module tasks: read nearest README files before code, then mandatorily keep README docs synchronized after changes."
-    },
     "init-readme": {
       "template": "Invoke the my-skills:readme skill and follow it exactly. If target path/symbol is missing, ask once. Use Read and other tools to map behavior and flow before updating the nearest README.md, then verify alignment before finishing.",
       "description": "Initialize or refresh README.md for a package/class/module using the readme skill."
@@ -142,12 +138,8 @@
       "template": "Retrieve memory for a specific module or topic. Follow this protocol:\n\n1. Take the user's query (module name, topic, or keyword).\n2. Use `search_nodes` to find matching entities.\n3. If no results, try broader terms or use `read_graph` to show all available modules.\n4. Present results in a compact table:\n\n| Entity | Type | Facts |\n|--------|------|-------|\n\n5. If relations exist between found entities, show them:\n   `entity-A --relation--> entity-B`\n\nBe concise. This is a lookup, not analysis.",
       "description": "Recall stored memory for a module or topic from the knowledge graph."
     },
-    "which-skill": {
-      "template": "Invoke the my-skills:skill-chooser skill and follow it exactly as presented to you",
-      "description": "Auto-detect the best skill(s) for your current task. Use when unsure which skill to apply."
-    },
     "ultron": {
-      "template": "Spawn the ultron subagent with the user's task (or the current conversation task). Ultron will: (1) read and understand the task, (2) invoke skill-chooser for skills per step, (3) output a bite-sized TDD structured plan saved to docs/plans/, (4) offer execution handoff options. Do not execute the plan unless the user explicitly chooses Subagent-Driven execution.",
+      "template": "Spawn the ultron subagent with the user's task (or the current conversation task). Ultron will: (1) read and understand the task, (2) assign skills per step, (3) output a bite-sized TDD structured plan saved to docs/plans/, (4) offer execution handoff options. Do not execute the plan unless the user explicitly chooses Subagent-Driven execution.",
       "description": "Get a structured TDD plan with per-step skill recommendations saved to docs/plans/. Spawns @ultron; plan only, no execution unless user requests."
     }
   }

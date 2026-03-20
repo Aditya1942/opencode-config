@@ -12,7 +12,7 @@ The orchestrator is a **pure dispatcher**. It never reads, writes, edits, or run
 ### Phase 1 — Plan (via @ultron)
 
 Spawn **@ultron** with the user's task. Ultron:
-- Understands requirements, reviews architecture, invokes `skill-chooser`
+- Understands requirements, reviews architecture, assigns skills per step
 - Outputs a structured plan (steps, skills per step, risks, verification)
 
 > Skip this phase only for trivial / single-step tasks.

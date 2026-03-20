@@ -17,7 +17,7 @@ For coding standards, skills table, slash commands, and anti-patterns, see root 
 | **sequencer** | Claude Sonnet | subagent | Takes big task and produces ordered plan using tools; outputs ordered steps. Spawn first for multi-step work. |
 | **executor** | Claude Haiku | subagent | Takes plan and executes steps sequentially using tools (validate + review per step). Spawn after sequencer. |
 | **explore** | Claude Haiku | subagent | Explores codebase using tools; outputs structured summary. Read-only. Use @explore for mapping or onboarding. |
-| **ultron** | Claude Sonnet | subagent | Planning sub-agent (planner merged): requirements, architecture review, phases, skill-chooser per step. Outputs structured plan only; does not execute. |
+| **ultron** | Claude Sonnet | subagent | Planning sub-agent (planner merged): requirements, architecture review, phases, skill selection per step. Outputs structured plan only; does not execute. |
 | **architect** | Claude Sonnet | subagent | Software architecture specialist: system design, scalability, trade-offs, ADRs. Use when planning features or refactoring large systems. |
 | **code-reviewer** | Claude Sonnet | subagent | Code review specialist: quality, security, maintainability. Use after code changes; required before claiming work done. |
 

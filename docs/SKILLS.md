@@ -7,11 +7,11 @@
 
 ## 🎓 Skills Overview
 
-The OpenCode skills system provides 96+ domain-specific, reusable instruction sets organized into 2 collections with a powerful skill-chooser routing system.
+The OpenCode skills system provides 96+ domain-specific, reusable instruction sets organized into 2 collections with a robust skill-selection workflow.
 
 ### Core Principle
 **Iron Law:** If a skill might apply (even 1% chance), invoke it first.  
-Never read SKILL.md files directly — always use the **skill tool** or **skill-chooser agent**.
+Never read SKILL.md files directly — always use the **skill tool** (or planning via `@ultron` / `/ultron`).
 
 ---
 
@@ -24,7 +24,7 @@ skills/
 │   ├── react-patterns/SKILL.md
 │   ├── typescript-expert/SKILL.md
 │   ├── ... (92+ more)
-│   └── skill-chooser/SKILL.md (router for all skills)
+│   └── ... (skill router removed)
 │
 └── update-config/           (Configuration updates)
     └── SKILL.md
@@ -162,12 +162,12 @@ skills/
 
 ## 🎯 Skill Selection Strategy
 
-### Using skill-chooser Agent (Recommended)
+### Ultron Planning (Recommended)
 
 ```
 User: "How do I optimize React performance?"
     ↓
-[skill-chooser analyzes request]
+[Ultron analyzes request]
     ├─ Extracts keywords: React, performance, optimization
     ├─ Scores 96+ skills by keyword match
     ├─ Returns top recommendations: react-best-practices, web-performance-optimization
@@ -304,17 +304,17 @@ listSkills()
 
 ## 🛠️ Special Skills
 
-### skill-chooser (Router Agent)
+### Ultron (Skill Assignment)
 
-**Purpose:** Dynamically recommend skills based on user request
+**Purpose:** Assign relevant skills to cover the plan steps for a user request
 
 **Algorithm:**
 ```
 1. Load skill index (~95+ skills with descriptions)
 2. Parse user request for intent signals
-3. Score each skill by keyword match
-4. Prefer specific skills over general ones
-5. Return top 1-3 recommendations with SKILL.md paths
+3. Select 1–3 skills that best cover the plan steps
+4. Map each selected skill to the most relevant plan steps
+5. Keep recommendations concise (limited to 1–3 skills)
 ```
 
 **Output:**
@@ -364,9 +364,9 @@ listSkills()
 
 ### When Skills Change
 1. User/team updates SKILL.md files in skills/my-skills/
-2. Changes auto-detected by skill-chooser (no re-registration needed)
+2. Changes auto-detected by the `skill` tool (no re-registration needed)
 3. New skills added: create `skills/my-skills/{name}/SKILL.md`
-4. Skill deletions: remove directory (skill-chooser notices absence)
+4. Skill deletions: remove directory (skill tool discovery handles it)
 
 ### Skill Versioning
 Skills don't have explicit versions. Breaking changes:
@@ -444,7 +444,7 @@ Skills don't have explicit versions. Breaking changes:
 - No external script execution beyond tool calls
 
 ### Skill Hallucination Prevention
-- skill-chooser returns max 3 recommendations
+- Skill selection returns max 3 recommendations
 - If skill doesn't exist, graceful error (no hallucination)
 - All returned paths are validated before reading
 
@@ -454,17 +454,14 @@ Skills don't have explicit versions. Breaking changes:
 
 ### Quick Links
 - **All skills:** `skills/my-skills/` (95+), plus update-config (96+ total in repo)
-- **Skill chooser:** `skills/my-skills/skill-chooser/SKILL.md`
+- **Ultron planning:** `/ultron` (writes a per-step skill plan to `docs/plans/`)
 - **Routing:** AGENTS.md
 - **Config updates:** `skills/update-config/SKILL.md`
 
 ### Useful Commands
 ```bash
-# List all skills
-@skill-chooser List all available skills
-
-# Get recommendation
-@skill-chooser Recommend skills for [task]
+# Plan with per-step skills
+/ultron <task>
 
 # Load specific skill
 /skill brainstorming
